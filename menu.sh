@@ -3612,30 +3612,29 @@ nginx_proxy_menu() {
     esac
 }
 
-install_xui_panel() {
+install_3xui_panel() {
     clear; show_banner
-    echo -e "${C_BOLD}${C_PURPLE}--- 🚀 Install X-UI Panel ---${C_RESET}"
-    echo -e "\nThis will download and run the official installation script for X-UI."
+    echo -e "${C_BOLD}${C_PURPLE}--- 🚀 Install 3X-UI Panel ---${C_RESET}"
+    echo -e "\nThis will download and run the official installation script for 3X-UI (MHSanaei)."
     echo -e "Choose an installation option:\n"
-    echo -e "Choose an installation option:\n"
-    printf "  ${C_GREEN}[ 1]${C_RESET} %-40s\n" "Install the latest version of X-UI"
-    printf "  ${C_GREEN}[ 2]${C_RESET} %-40s\n" "Install a specific version of X-UI"
+    printf "  ${C_GREEN}[ 1]${C_RESET} %-40s\n" "Install the latest version of 3X-UI"
+    printf "  ${C_GREEN}[ 2]${C_RESET} %-40s\n" "Install a specific version of 3X-UI"
     echo -e "\n  ${C_RED}[ 0]${C_RESET} ❌ Cancel Installation"
     echo
     read -p "👉 Select an option: " choice
     case $choice in
         1)
             echo -e "\n${C_BLUE}⚙️ Installing the latest version...${C_RESET}"
-            bash <(curl -Ls https://raw.githubusercontent.com/alireza0/x-ui/master/install.sh)
+            bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
             ;;
         2)
-            read -p "👉 Enter the version to install (e.g., 1.8.0): " version
+            read -p "👉 Enter the version to install (e.g., 2.4.5): " version
             if [[ -z "$version" ]]; then
                 echo -e "\n${C_RED}❌ Version number cannot be empty.${C_RESET}"
                 return
             fi
             echo -e "\n${C_BLUE}⚙️ Installing version ${C_YELLOW}$version...${C_RESET}"
-            VERSION=$version bash <(curl -Ls "https://raw.githubusercontent.com/alireza0/x-ui/$version/install.sh") "$version"
+            bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui/v$version/install.sh") "v$version"
             ;;
         0)
             echo -e "\n${C_YELLOW}❌ Installation cancelled.${C_RESET}"
@@ -3646,29 +3645,29 @@ install_xui_panel() {
     esac
 }
 
-uninstall_xui_panel() {
+uninstall_3xui_panel() {
     clear; show_banner
-    echo -e "${C_BOLD}${C_PURPLE}--- 🗑️ Uninstall X-UI Panel ---${C_RESET}"
+    echo -e "${C_BOLD}${C_PURPLE}--- 🗑️ Uninstall 3X-UI Panel ---${C_RESET}"
     if ! command -v x-ui &> /dev/null; then
-        echo -e "\n${C_YELLOW}ℹ️ X-UI does not appear to be installed.${C_RESET}"
+        echo -e "\n${C_YELLOW}ℹ️ 3X-UI does not appear to be installed.${C_RESET}"
         return
     fi
-    read -p "👉 Are you sure you want to thoroughly uninstall X-UI? (y/n): " confirm
+    read -p "👉 Are you sure you want to thoroughly uninstall 3X-UI? (y/n): " confirm
     if [[ "$confirm" == "y" ]]; then
-        echo -e "\n${C_BLUE}⚙️ Running the default X-UI uninstaller first...${C_RESET}"
+        echo -e "\n${C_BLUE}⚙️ Running the default 3X-UI uninstaller first...${C_RESET}"
         x-ui uninstall >/dev/null 2>&1
         echo -e "\n${C_BLUE}🧹 Performing a full cleanup to ensure complete removal...${C_RESET}"
         echo " - Stopping and disabling x-ui service..."
         systemctl stop x-ui >/dev/null 2>&1
         systemctl disable x-ui >/dev/null 2>&1
-        echo " - Removing x-ui files and directories..."
+        echo " - Removing 3x-ui files and directories..."
         rm -f /etc/systemd/system/x-ui.service
         rm -f /usr/local/bin/x-ui
         rm -rf /usr/local/x-ui/
         rm -rf /etc/x-ui/
         echo " - Reloading systemd daemon..."
         systemctl daemon-reload
-        echo -e "\n${C_GREEN}✅ X-UI has been thoroughly uninstalled.${C_RESET}"
+        echo -e "\n${C_GREEN}✅ 3X-UI has been thoroughly uninstalled.${C_RESET}"
     else
         echo -e "\n${C_YELLOW}❌ Uninstallation cancelled.${C_RESET}"
     fi
@@ -3819,7 +3818,7 @@ protocol_menu() {
         fi
 
         local nginx_status; if systemctl is-active --quiet nginx; then nginx_status="${C_STATUS_A}(Active)${C_RESET}"; else nginx_status="${C_STATUS_I}(Inactive)${C_RESET}"; fi
-        local xui_status; if command -v x-ui &> /dev/null; then xui_status="${C_STATUS_A}(Installed)${C_RESET}"; else xui_status="${C_STATUS_I}(Not Installed)${C_RESET}"; fi
+        local xui_status; if command -v x-ui &> /dev/null; then xui_status="${C_STATUS_A}(Installed)${C_RESET}"; else xui_status="${C_STATUS_I}(Not Installed)${C_RESET}"; fi  # 3X-UI uses same 'x-ui' binary name
         
         echo -e "\n   ${C_TITLE}══════════════[ ${C_BOLD}🔌 PROTOCOL & PANEL MANAGEMENT ${C_RESET}${C_TITLE}]══════════════${C_RESET}"
         echo -e "     ${C_ACCENT}--- TUNNELLING PROTOCOLS---${C_RESET}"
@@ -3838,8 +3837,8 @@ protocol_menu() {
         printf "     ${C_CHOICE}[17]${C_RESET} %-45s\n" "🗑️ Uninstall ZiVPN"
         
         echo -e "     ${C_ACCENT}--- 💻 MANAGEMENT PANELS ---${C_RESET}"
-        printf "     ${C_CHOICE}[12]${C_RESET} %-45s %s\n" "💻 Install X-UI Panel" "$xui_status"
-        printf "     ${C_CHOICE}[13]${C_RESET} %-45s\n" "🗑️ Uninstall X-UI Panel"
+        printf "     ${C_CHOICE}[12]${C_RESET} %-45s %s\n" "💻 Install 3X-UI Panel" "$xui_status"
+        printf "     ${C_CHOICE}[13]${C_RESET} %-45s\n" "🗑️ Uninstall 3X-UI Panel"
         
         echo -e "   ${C_DIM}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~${C_RESET}"
         echo -e "     ${C_WARN}[ 0]${C_RESET} ↩️ Return to Main Menu"
@@ -3855,7 +3854,7 @@ protocol_menu() {
             7) install_dnstt; press_enter ;; 8) uninstall_dnstt; press_enter ;;
             9) install_falcon_proxy; press_enter ;; 10) uninstall_falcon_proxy; press_enter ;;
             11) nginx_proxy_menu ;;
-            12) install_xui_panel; press_enter ;; 13) uninstall_xui_panel; press_enter ;;
+            12) install_3xui_panel; press_enter ;; 13) uninstall_3xui_panel; press_enter ;;
             16) install_zivpn; press_enter ;; 17) uninstall_zivpn; press_enter ;;
             0) return ;;
             *) invalid_option ;;
