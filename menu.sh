@@ -2340,10 +2340,16 @@ ensure_edge_stack_packages() {
 
     if (( ${#missing_packages[@]} > 0 )); then
         echo -e "\n${C_BLUE}📦 Installing required packages: ${missing_packages[*]}${C_RESET}"
-        ff_pkg_install "${missing_packages[@]}" || {
-            echo -e "${C_RED}❌ Failed to install the required packages.${C_RESET}"
-            return 1
-        }
+        if ! ff_pkg_install "${missing_packages[@]}"; then
+            echo -e "${C_YELLOW}⚠️ Package installation failed. Attempting to fix broken configurations...${C_RESET}"
+            if command -v apt-get &>/dev/null; then
+                apt-get purge -y nginx nginx-common haproxy >/dev/null 2>&1
+            fi
+            if ! ff_pkg_install "${missing_packages[@]}"; then
+                echo -e "${C_RED}❌ Failed to install the required packages.${C_RESET}"
+                return 1
+            fi
+        fi
     fi
     return 0
 }
