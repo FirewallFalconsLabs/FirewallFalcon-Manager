@@ -97,6 +97,66 @@ FF_USERS_GROUP="ffusers"
 declare -A SSH_SESSION_COUNTS=()
 declare -A SSH_SESSION_PIDS=()
 
+# --- Package Manager Abstraction ---
+FF_PKG_MGR=""
+_detect_pkg_manager() {
+    if command -v apt-get &>/dev/null; then
+        FF_PKG_MGR="apt"
+    elif command -v dnf &>/dev/null; then
+        FF_PKG_MGR="dnf"
+    elif command -v yum &>/dev/null; then
+        FF_PKG_MGR="yum"
+    elif command -v zypper &>/dev/null; then
+        FF_PKG_MGR="zypper"
+    elif command -v pacman &>/dev/null; then
+        FF_PKG_MGR="pacman"
+    else
+        echo -e "${C_RED}❌ No supported package manager found (apt/dnf/yum/zypper/pacman).${C_RESET}"
+        exit 1
+    fi
+}
+_detect_pkg_manager
+
+_map_pkg_names() {
+    local -a result=()
+    local pkg
+    for pkg in "$@"; do
+        case "$FF_PKG_MGR" in
+            dnf|yum)
+                case "$pkg" in
+                    build-essential) result+=(gcc gcc-c++ make) ;;
+                    libssl-dev) result+=(openssl-devel) ;;
+                    libnspr4-dev) result+=(nspr-devel) ;;
+                    libnss3-dev) result+=(nss-devel) ;;
+                    nginx-common) result+=(nginx) ;;
+                    pkg-config) result+=(pkgconf) ;;
+                    *) result+=("$pkg") ;;
+                esac ;;
+            zypper)
+                case "$pkg" in
+                    build-essential) result+=(gcc gcc-c++ make) ;;
+                    libssl-dev) result+=(libopenssl-devel) ;;
+                    libnspr4-dev) result+=(mozilla-nspr-devel) ;;
+                    libnss3-dev) result+=(mozilla-nss-devel) ;;
+                    nginx-common) result+=(nginx) ;;
+                    *) result+=("$pkg") ;;
+                esac ;;
+            pacman)
+                case "$pkg" in
+                    build-essential) result+=(base-devel) ;;
+                    libssl-dev) result+=(openssl) ;;
+                    libnspr4-dev) result+=(nspr) ;;
+                    libnss3-dev) result+=(nss) ;;
+                    nginx-common) result+=(nginx) ;;
+                    bc) result+=(bc) ;;
+                    *) result+=("$pkg") ;;
+                esac ;;
+            *) result+=("$pkg") ;;
+        esac
+    done
+    printf '%s\n' "${result[@]}"
+}
+
 if [[ $EUID -ne 0 ]]; then
    echo -e "${C_RED}❌ Error: This script requires root privileges to run.${C_RESET}"
    exit 1
@@ -245,6 +305,57 @@ ff_apt_purge() {
     DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Use-Pty=0 purge "${packages[@]}"
 }
 
+ff_pkg_install() {
+    local -a packages=("$@")
+    (( ${#packages[@]} > 0 )) || return 0
+    local -a mapped=()
+    mapfile -t mapped < <(_map_pkg_names "${packages[@]}")
+    case "$FF_PKG_MGR" in
+        apt) ff_apt_install "${mapped[@]}" ;;
+        dnf) dnf install -y -q "${mapped[@]}" ;;
+        yum) yum install -y -q "${mapped[@]}" ;;
+        zypper) zypper install -y -q "${mapped[@]}" ;;
+        pacman) pacman -S --noconfirm --needed "${mapped[@]}" ;;
+        *) echo -e "${C_RED}❌ Unsupported package manager.${C_RESET}"; return 1 ;;
+    esac
+}
+
+ff_pkg_purge() {
+    local -a packages=("$@")
+    (( ${#packages[@]} > 0 )) || return 0
+    local -a mapped=()
+    mapfile -t mapped < <(_map_pkg_names "${packages[@]}")
+    case "$FF_PKG_MGR" in
+        apt) ff_apt_purge "${mapped[@]}" ;;
+        dnf) dnf remove -y -q "${mapped[@]}" ;;
+        yum) yum remove -y -q "${mapped[@]}" ;;
+        zypper) zypper remove -y "${mapped[@]}" ;;
+        pacman) pacman -Rns --noconfirm "${mapped[@]}" 2>/dev/null ;;
+        *) echo -e "${C_RED}❌ Unsupported package manager.${C_RESET}"; return 1 ;;
+    esac
+}
+
+ff_pkg_autoremove() {
+    case "$FF_PKG_MGR" in
+        apt) apt-get autoremove -y >/dev/null 2>&1 ;;
+        dnf) dnf autoremove -y -q >/dev/null 2>&1 ;;
+        yum) yum autoremove -y -q >/dev/null 2>&1 ;;
+        zypper) zypper packages --unneeded 2>/dev/null | awk -F'|' 'NR>3{print $3}' | xargs -r zypper remove -y >/dev/null 2>&1 ;;
+        pacman) pacman -Qdtq 2>/dev/null | xargs -r pacman -Rns --noconfirm >/dev/null 2>&1 ;;
+    esac
+    return 0
+}
+
+ff_pkg_is_installed() {
+    local pkg="$1"
+    case "$FF_PKG_MGR" in
+        apt) dpkg -s "$pkg" &>/dev/null ;;
+        dnf|yum) rpm -q "$pkg" &>/dev/null ;;
+        zypper) rpm -q "$pkg" &>/dev/null ;;
+        pacman) pacman -Q "$pkg" &>/dev/null ;;
+    esac
+}
+
 # Mandatory Dependency Check (Added jq and curl)
 check_environment() {
     local missing_packages=()
@@ -258,7 +369,7 @@ check_environment() {
 
     if (( ${#missing_packages[@]} > 0 )); then
         echo -e "${C_YELLOW}⚠️ Installing missing dependencies: ${missing_packages[*]}${C_RESET}"
-        ff_apt_install "${missing_packages[@]}" >/dev/null 2>&1 || {
+        ff_pkg_install "${missing_packages[@]}" >/dev/null 2>&1 || {
             echo -e "${C_RED}❌ Error: Failed to install required dependencies: ${missing_packages[*]}.${C_RESET}"
             exit 1
         }
@@ -546,7 +657,7 @@ setup_limiter_service() {
     # Combined limiter + bandwidth monitoring
     cat > "$LIMITER_SCRIPT" << 'EOF'
 #!/bin/bash
-# FirewallFalcon limiter version 2026-05-03.1
+# FirewallFalcon limiter version 2026-06-07.1
 DB_FILE="/etc/firewallfalcon/users.db"
 BW_DIR="/etc/firewallfalcon/bandwidth"
 PID_DIR="$BW_DIR/pidtrack"
@@ -661,7 +772,7 @@ while true; do
         fi
 
         expiry_ts=0
-        if [[ "$expiry" != "Never" && -n "$expiry" ]]; then
+        if [[ "$expiry" != "Never" && -n "$expiry" && "$expiry" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
             expiry_ts=$(date -d "$expiry" +%s 2>/dev/null || echo 0)
             if [[ "$expiry_ts" =~ ^[0-9]+$ ]] && (( expiry_ts > 0 && expiry_ts < current_ts )); then
                 if ! $user_locked; then
@@ -711,8 +822,15 @@ while true; do
                     read -r accum_disp < "$usagefile"
                     [[ "$accum_disp" =~ ^[0-9]+$ ]] || accum_disp=0
                 fi
-                used_gb=$(awk "BEGIN {printf \"%.2f\", $accum_disp / 1073741824}")
-                remain_gb=$(awk "BEGIN {r=$bandwidth_gb - $used_gb; if(r<0) r=0; printf \"%.2f\", r}")
+                used_gb_int=$((accum_disp / 1073741824))
+                used_gb_frac=$(( (accum_disp % 1073741824) * 100 / 1073741824 ))
+                printf -v used_gb "%d.%02d" "$used_gb_int" "$used_gb_frac"
+                quota_b=$(( ${bandwidth_gb%%.*} * 1073741824 ))
+                remain_b=$(( quota_b - accum_disp ))
+                (( remain_b < 0 )) && remain_b=0
+                remain_gb_int=$((remain_b / 1073741824))
+                remain_gb_frac=$(( (remain_b % 1073741824) * 100 / 1073741824 ))
+                printf -v remain_gb "%d.%02d" "$remain_gb_int" "$remain_gb_frac"
                 bw_info="${used_gb}/${bandwidth_gb} GB used | ${remain_gb} GB left"
             fi
 
@@ -778,7 +896,7 @@ while true; do
         new_total=$((accumulated + delta_total))
         printf "%s\n" "$new_total" > "$usagefile"
 
-        quota_bytes=$(awk "BEGIN {printf \"%.0f\", $bandwidth_gb * 1073741824}")
+        quota_bytes=$(( ${bandwidth_gb%%.*} * 1073741824 ))
         if [[ "$quota_bytes" =~ ^[0-9]+$ ]] && (( new_total >= quota_bytes )); then
             if ! $user_locked; then
                 usermod -L "$user" &>/dev/null
@@ -830,7 +948,7 @@ EOF
 }
 
 sync_runtime_components_if_needed() {
-    local limiter_marker="# FirewallFalcon limiter version 2026-05-03.1"
+    local limiter_marker="# FirewallFalcon limiter version 2026-06-07.1"
     cleanup_legacy_bandwidth_runtime
     setup_trial_cleanup_script >/dev/null 2>&1
     if [[ ! -f "$LIMITER_SCRIPT" ]] || ! grep -Fqx "$limiter_marker" "$LIMITER_SCRIPT" 2>/dev/null; then
@@ -991,7 +1109,7 @@ generate_dns_record() {
     echo -e "\n${C_BLUE}⚙️ Generating a random domain...${C_RESET}"
     if ! command -v jq &> /dev/null; then
         echo -e "${C_YELLOW}⚠️ jq not found, attempting to install...${C_RESET}"
-        ff_apt_install jq >/dev/null 2>&1 || {
+        ff_pkg_install jq >/dev/null 2>&1 || {
             echo -e "${C_RED}❌ Failed to install jq. Cannot manage DNS records.${C_RESET}"
             return 1
         }
@@ -1133,7 +1251,7 @@ _select_user_interface() {
     for i in "${!users[@]}"; do
         printf "  ${C_GREEN}[%2d]${C_RESET} %s\n" "$((i+1))" "${users[$i]}"
     done
-    echo -e "\n  ${C_RED} [ 0]${C_RESET} ↩️ Cancel and return to main menu"
+    echo -e "\n  ${C_RED} [ 0]${C_RESET} ↩️ Cancel"
     echo -e "${C_CYAN}💡 Tip: you can also type the exact username directly.${C_RESET}"
     echo
     local choice
@@ -1236,7 +1354,7 @@ _select_multi_user_interface() {
             SELECTED_USERS=()
             return
         fi
-        choice=$(echo "$choice" | tr ',' ' ') # Replace commas with spaces
+        choice=${choice//,/ } # Replace commas with spaces
         
         if [[ -z "$choice" ]]; then
             echo -e "${C_RED}❌ Invalid selection. Please try again.${C_RESET}"
@@ -1430,17 +1548,15 @@ edit_user() {
         
         # Show current user details
         local current_line; current_line=$(grep "^$username:" "$DB_FILE")
-        local cur_pass; cur_pass=$(echo "$current_line" | cut -d: -f2)
-        local cur_expiry; cur_expiry=$(echo "$current_line" | cut -d: -f3)
-        local cur_limit; cur_limit=$(echo "$current_line" | cut -d: -f4)
-        local cur_bw; cur_bw=$(echo "$current_line" | cut -d: -f5)
+        local cur_pass cur_expiry cur_limit cur_bw
+        IFS=: read -r _ cur_pass cur_expiry cur_limit cur_bw _ <<< "$current_line"
         [[ -z "$cur_bw" ]] && cur_bw="0"
         local cur_bw_display="Unlimited"; [[ "$cur_bw" != "0" ]] && cur_bw_display="${cur_bw} GB"
         
         # Show bandwidth usage
         local bw_used_display="N/A"
         if [[ -f "$BANDWIDTH_DIR/${username}.usage" ]]; then
-            local used_bytes; used_bytes=$(cat "$BANDWIDTH_DIR/${username}.usage" 2>/dev/null)
+            local used_bytes=0; read -r used_bytes < "$BANDWIDTH_DIR/${username}.usage" 2>/dev/null || used_bytes=0
             if [[ -n "$used_bytes" && "$used_bytes" != "0" ]]; then
                 bw_used_display=$(awk "BEGIN {printf \"%.2f GB\", $used_bytes / 1073741824}")
             else
@@ -1596,7 +1712,7 @@ list_users() {
         if [[ "$bandwidth_gb" != "0" ]]; then
             local used_bytes=0
             if [[ -f "$BANDWIDTH_DIR/${user}.usage" ]]; then
-                used_bytes=$(cat "$BANDWIDTH_DIR/${user}.usage" 2>/dev/null)
+                read -r used_bytes < "$BANDWIDTH_DIR/${user}.usage" 2>/dev/null || used_bytes=0
                 [[ "$used_bytes" =~ ^[0-9]+$ ]] || used_bytes=0
             fi
             local used_gb
@@ -1658,7 +1774,9 @@ renew_user() {
     echo -e "\n${C_BLUE}🔄 Renewing selected users for $days days...${C_RESET}"
     for u in "${SELECTED_USERS[@]}"; do
         chage -E "$new_expire_date" "$u"
-        local line; line=$(grep "^$u:" "$DB_FILE"); local pass; pass=$(echo "$line"|cut -d: -f2); local limit; limit=$(echo "$line"|cut -d: -f4); local bw; bw=$(echo "$line"|cut -d: -f5)
+        local line pass _expiry limit bw
+        line=$(grep "^$u:" "$DB_FILE")
+        IFS=: read -r _ pass _expiry limit bw _ <<< "$line"
         [[ -z "$bw" ]] && bw="0"
         sed -i "s/^$u:.*/$u:$pass:$new_expire_date:$limit:$bw/" "$DB_FILE"
         echo -e " ✅ ${C_YELLOW}$u${C_RESET} renewed until ${C_GREEN}${new_expire_date}${C_RESET}."
@@ -1696,18 +1814,9 @@ cleanup_expired() {
     read -p "👉 Do you want to delete all of them? (y/n): " confirm
 
     if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
-        for user in "${expired_users[@]}"; do
-            echo " - Deleting ${C_YELLOW}$user...${C_RESET}"
-            killall -u "$user" -9 &>/dev/null
-            # Clean up bandwidth tracking
-            rm -f "$BANDWIDTH_DIR/${user}.usage"
-            rm -rf "$BANDWIDTH_DIR/pidtrack/${user}"
-            userdel -r "$user" &>/dev/null
-            sed -i "/^$user:/d" "$DB_FILE"
-        done
+        echo -e "\n${C_BLUE}🗑️ Deleting expired users...${C_RESET}"
+        delete_firewallfalcon_user_accounts "${expired_users[@]}"
         echo -e "\n${C_GREEN}✅ Expired users have been cleaned up.${C_RESET}"
-        invalidate_banner_cache
-        refresh_dynamic_banner_routing_if_enabled
     else
         echo -e "\n${C_YELLOW}❌ Cleanup cancelled.${C_RESET}"
     fi
@@ -2087,7 +2196,7 @@ install_badvpn() {
     echo -e "\n${C_GREEN}🔄 Updating package lists...${C_RESET}"
     ff_apt_update || return
     echo -e "\n${C_GREEN}📦 Installing all required packages...${C_RESET}"
-    ff_apt_install cmake g++ make screen git build-essential libssl-dev libnspr4-dev libnss3-dev pkg-config || {
+    ff_pkg_install cmake g++ make screen git build-essential libssl-dev libnspr4-dev libnss3-dev pkg-config || {
         echo -e "${C_RED}❌ Failed to install badvpn build dependencies.${C_RESET}"
         return
     }
@@ -2213,7 +2322,7 @@ ensure_edge_stack_packages() {
 
     if (( ${#missing_packages[@]} > 0 )); then
         echo -e "\n${C_BLUE}📦 Installing required packages: ${missing_packages[*]}${C_RESET}"
-        ff_apt_install "${missing_packages[@]}" || {
+        ff_pkg_install "${missing_packages[@]}" || {
             echo -e "${C_RED}❌ Failed to install the required packages.${C_RESET}"
             return 1
         }
@@ -2256,7 +2365,7 @@ _install_certbot() {
         return 0
     fi
     echo -e "${C_BLUE}📦 Installing Certbot...${C_RESET}"
-    ff_apt_install certbot || {
+    ff_pkg_install certbot || {
         echo -e "${C_RED}❌ Failed to install Certbot.${C_RESET}"
         return 1
     }
@@ -3248,7 +3357,7 @@ install_zivpn() {
     # Generate Certificates
     echo -e "${C_BLUE}🔐 Generating self-signed certificates...${C_RESET}"
     if ! command -v openssl &>/dev/null; then
-        ff_apt_install openssl >/dev/null 2>&1 || {
+        ff_pkg_install openssl >/dev/null 2>&1 || {
             echo -e "${C_RED}❌ Failed to install openssl for ZiVPN certificate generation.${C_RESET}"
             return
         }
@@ -3409,8 +3518,8 @@ purge_nginx() {
     systemctl stop nginx >/dev/null 2>&1
     systemctl disable nginx >/dev/null 2>&1
     echo -e "\n${C_BLUE}🗑️ Purging Nginx packages...${C_RESET}"
-    ff_apt_purge nginx nginx-common >/dev/null 2>&1
-    apt-get autoremove -y >/dev/null 2>&1
+    ff_pkg_purge nginx nginx-common >/dev/null 2>&1
+    ff_pkg_autoremove
     echo -e "\n${C_BLUE}🗑️ Removing leftover files...${C_RESET}"
     rm -f /etc/ssl/certs/nginx-selfsigned.pem
     rm -f /etc/ssl/private/nginx-selfsigned.key
@@ -3520,7 +3629,8 @@ request_certbot_ssl() {
 }
 
 nginx_proxy_menu() {
-    clear; show_banner
+    while true; do
+    show_banner
     echo -e "${C_BOLD}${C_PURPLE}--- 🌐 Internal Nginx Proxy Management ---${C_RESET}"
 
     local nginx_status="${C_STATUS_I}Inactive${C_RESET}"
@@ -3558,9 +3668,12 @@ nginx_proxy_menu() {
          printf "  ${C_CHOICE}[ 5]${C_RESET} %-40s\n" "🔥 Uninstall/Purge Nginx"
     fi
 
-    echo -e "\n  ${C_WARN}[ 0]${C_RESET} ↩️ Return to previous menu"
+    echo -e "\n  ${C_WARN}[ 0]${C_RESET} ↩️ Return"
     echo
-    read -p "👉 Enter your choice: " choice
+    if ! read -r -p "$(echo -e ${C_PROMPT}"👉 Select an option: "${C_RESET})" choice; then
+        echo
+        return
+    fi
     
     case $choice in
         1) 
@@ -3610,21 +3723,22 @@ nginx_proxy_menu() {
         0) return ;;
         *) invalid_option ;;
     esac
+    done
 }
 
 install_panel_menu() {
     clear; show_banner
     echo -e "${C_BOLD}${C_PURPLE}--- 💻 Install X-UI / 3X-UI Panel ---${C_RESET}"
     echo -e "\n${C_CYAN}Select which panel to install:${C_RESET}\n"
-    printf "  ${C_GREEN}[ 1]${C_RESET} %-45s %s\n" "🚀 3X-UI Panel (MHSanaei)" "${C_STATUS_A}⭐ Recommended${C_RESET}"
-    printf "  ${C_GREEN}[ 2]${C_RESET} %-45s %s\n" "📦 X-UI Panel (alireza0)" "${C_DIM}Legacy${C_RESET}"
+    printf "  ${C_CHOICE}[ 1]${C_RESET} %-45s %s\n" "📦 X-UI Panel (alireza0)" "${C_STATUS_A}⭐ Default${C_RESET}"
+    printf "  ${C_CHOICE}[ 2]${C_RESET} %-45s %s\n" "🚀 3X-UI Panel (MHSanaei)" ""
     echo -e "\n  ${C_RED}[ 0]${C_RESET} ❌ Cancel"
     echo
     read -p "👉 Select panel [1]: " panel_choice
     panel_choice=${panel_choice:-1}
     case $panel_choice in
-        1) install_3xui_panel ;;
-        2) install_xui_panel ;;
+        1) install_xui_panel ;;
+        2) install_3xui_panel ;;
         0) echo -e "\n${C_YELLOW}❌ Installation cancelled.${C_RESET}" ;;
         *) echo -e "\n${C_RED}❌ Invalid option.${C_RESET}" ;;
     esac
@@ -3764,19 +3878,34 @@ refresh_ssh_session_cache() {
         if [[ -n "$ssh_owner" && "$ssh_owner" != "root" && "$ssh_owner" != "sshd" && -n "${managed_user_lookup[$ssh_owner]+x}" ]]; then
             session_pids["$ssh_owner"]+="$ssh_pid "
         fi
-
-        # Method 2: kernel loginuid (works even when process owner is root/sshd)
-        if [[ -r "/proc/$ssh_pid/loginuid" ]]; then
-            login_uid=""
-            read -r login_uid < "/proc/$ssh_pid/loginuid" || login_uid=""
-            if [[ "$login_uid" =~ ^[0-9]+$ && "$login_uid" != "4294967295" ]]; then
-                candidate_user="${uid_user_lookup[$login_uid]}"
-                if [[ -n "$candidate_user" && -n "${managed_user_lookup[$candidate_user]+x}" ]]; then
-                    loginuid_pids["$candidate_user"]+="$ssh_pid "
-                fi
-            fi
-        fi
     done < <(ps -C sshd -o pid=,user= 2>/dev/null)
+
+    # Method 2: kernel loginuid with comm/PPid validation (more robust — matches limiter logic)
+    local p pid_dir pid_num comm ppid_val session_user
+    for p in /proc/[0-9]*/loginuid; do
+        [[ -f "$p" ]] || continue
+        login_uid=""
+        read -r login_uid < "$p" || login_uid=""
+        [[ "$login_uid" =~ ^[0-9]+$ && "$login_uid" != "4294967295" ]] || continue
+
+        candidate_user="${uid_user_lookup[$login_uid]}"
+        [[ -n "$candidate_user" && -n "${managed_user_lookup[$candidate_user]+x}" ]] || continue
+
+        pid_dir=$(dirname "$p")
+        pid_num=$(basename "$pid_dir")
+        comm=""
+        read -r comm < "$pid_dir/comm" 2>/dev/null || comm=""
+        [[ "$comm" == "sshd" ]] || continue
+
+        # Filter out the master sshd process (PPid=1)
+        ppid_val=""
+        while read -r key value; do
+            [[ "$key" == "PPid:" ]] && { ppid_val="$value"; break; }
+        done < "$pid_dir/status" 2>/dev/null
+        [[ "$ppid_val" == "1" ]] && continue
+
+        loginuid_pids["$candidate_user"]+="$pid_num "
+    done
 
     local user pid
     for user in "${!managed_user_lookup[@]}"; do
@@ -3825,7 +3954,10 @@ refresh_banner_cache() {
     BANNER_CACHE_RAM_USAGE=$(free -m | awk '/^Mem:/{if($2>0){printf "%.2f", $3*100/$2}else{print "0.00"}}')
     BANNER_CACHE_CPU_LOAD=$(awk '{print $1}' /proc/loadavg 2>/dev/null)
     if [[ -s "$DB_FILE" ]]; then
-        BANNER_CACHE_TOTAL_USERS=$(grep -c . "$DB_FILE")
+        BANNER_CACHE_TOTAL_USERS=0
+        while IFS=: read -r _u _rest; do
+            [[ -n "$_u" && "$_u" != \#* ]] && (( BANNER_CACHE_TOTAL_USERS++ ))
+        done < "$DB_FILE"
     else
         BANNER_CACHE_TOTAL_USERS=0
     fi
@@ -3884,15 +4016,15 @@ protocol_menu() {
         printf "     ${C_CHOICE}[ 9]${C_RESET} %-45s %s\n" "🦅 Install Falcon Proxy (Select Version)" "$falconproxy_status"
         printf "     ${C_CHOICE}[10]${C_RESET} %-45s\n" "🗑️ Uninstall Falcon Proxy"
         printf "     ${C_CHOICE}[11]${C_RESET} %-45s %s\n" "🌐 Install/Manage Internal Nginx (8880/8443)" "$nginx_status"
-        printf "     ${C_CHOICE}[16]${C_RESET} %-45s %s\n" "🛡️ Install ZiVPN (UDP 5667)" "$zivpn_status"
-        printf "     ${C_CHOICE}[17]${C_RESET} %-45s\n" "🗑️ Uninstall ZiVPN"
+        printf "     ${C_CHOICE}[14]${C_RESET} %-45s %s\n" "🛡️ Install ZiVPN (UDP 5667)" "$zivpn_status"
+        printf "     ${C_CHOICE}[15]${C_RESET} %-45s\n" "🗑️ Uninstall ZiVPN"
         
         echo -e "     ${C_ACCENT}--- 💻 MANAGEMENT PANELS ---${C_RESET}"
         printf "     ${C_CHOICE}[12]${C_RESET} %-45s %s\n" "💻 Install X-UI / 3X-UI Panel" "$xui_status"
         printf "     ${C_CHOICE}[13]${C_RESET} %-45s\n" "🗑️ Uninstall X-UI / 3X-UI Panel"
         
         echo -e "   ${C_DIM}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~${C_RESET}"
-        echo -e "     ${C_WARN}[ 0]${C_RESET} ↩️ Return to Main Menu"
+        echo -e "     ${C_WARN}[ 0]${C_RESET} ↩️ Return"
         echo
         if ! read -r -p "$(echo -e ${C_PROMPT}"👉 Select an option: "${C_RESET})" choice; then
             echo
@@ -3906,7 +4038,7 @@ protocol_menu() {
             9) install_falcon_proxy; press_enter ;; 10) uninstall_falcon_proxy; press_enter ;;
             11) nginx_proxy_menu ;;
             12) install_panel_menu; press_enter ;; 13) uninstall_xui_panel; press_enter ;;
-            16) install_zivpn; press_enter ;; 17) uninstall_zivpn; press_enter ;;
+            14) install_zivpn; press_enter ;; 15) uninstall_zivpn; press_enter ;;
             0) return ;;
             *) invalid_option ;;
         esac
@@ -4005,7 +4137,7 @@ create_trial_account() {
     # Ensure 'at' daemon is available
     if ! command -v at &>/dev/null; then
         echo -e "${C_YELLOW}⚠️ 'at' command not found. Installing...${C_RESET}"
-        ff_apt_install at >/dev/null 2>&1 || {
+        ff_pkg_install at >/dev/null 2>&1 || {
             echo -e "${C_RED}❌ Failed to install 'at'. Cannot schedule auto-expiry.${C_RESET}"
             return
         }
@@ -4137,12 +4269,13 @@ view_user_bandwidth() {
     echo -e "${C_BOLD}${C_PURPLE}--- 📊 Bandwidth Details: ${C_YELLOW}$u${C_PURPLE} ---${C_RESET}\n"
     
     local line; line=$(grep "^$u:" "$DB_FILE")
-    local bandwidth_gb; bandwidth_gb=$(echo "$line" | cut -d: -f5)
+    local _u _p _e _l bandwidth_gb
+    IFS=: read -r _u _p _e _l bandwidth_gb _ <<< "$line"
     [[ -z "$bandwidth_gb" ]] && bandwidth_gb="0"
     
     local used_bytes=0
     if [[ -f "$BANDWIDTH_DIR/${u}.usage" ]]; then
-        used_bytes=$(cat "$BANDWIDTH_DIR/${u}.usage" 2>/dev/null)
+        read -r used_bytes < "$BANDWIDTH_DIR/${u}.usage" 2>/dev/null || used_bytes=0
         [[ -z "$used_bytes" ]] && used_bytes=0
     fi
     
@@ -4309,7 +4442,7 @@ generate_client_config() {
     fi
     
     echo -e "${C_YELLOW}========================================${C_RESET}"
-    press_enter
+
 }
 
 client_config_menu() {
@@ -4419,7 +4552,7 @@ traffic_monitor_menu() {
                read -p "👉 Install vnStat now? (y/n): " confirm
                 if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
                      echo -e "\n${C_BLUE}📦 Installing vnStat...${C_RESET}"
-                     ff_apt_install vnstat >/dev/null 2>&1 || {
+                     ff_pkg_install vnstat >/dev/null 2>&1 || {
                          echo -e "${C_RED}❌ Failed to install vnStat.${C_RESET}"
                          sleep 1
                          return
@@ -4496,7 +4629,7 @@ torrent_block_menu() {
             iptables -A OUTPUT -m string --string "find_node" --algo bm -j DROP
             
             # Attempt to save if iptables-persistent exists
-            if dpkg -s iptables-persistent &>/dev/null; then
+            if ff_pkg_is_installed iptables-persistent &>/dev/null; then
                 netfilter-persistent save &>/dev/null
             fi
             
@@ -4506,7 +4639,7 @@ torrent_block_menu() {
         2)
             echo -e "\n${C_BLUE}🔓 Removing Anti-Torrent rules...${C_RESET}"
             _flush_torrent_rules
-            if dpkg -s iptables-persistent &>/dev/null; then
+            if ff_pkg_is_installed iptables-persistent &>/dev/null; then
                 netfilter-persistent save &>/dev/null
             fi
             echo -e "${C_GREEN}✅ Torrent Blocking Disabled.${C_RESET}"
@@ -4560,7 +4693,7 @@ ssh_banner_menu() {
         printf "     ${C_CHOICE}[ 4]${C_RESET} %-40s\n" "📝 Preview Dynamic Banner"
         printf "     ${C_DANGER}[ 5]${C_RESET} %-40s\n" "🗑️ Disable All SSH Banners"
         echo -e "   ${C_DIM}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~${C_RESET}"
-        echo -e "     ${C_WARN}[ 0]${C_RESET} ↩️ Return to Main Menu"
+        echo -e "     ${C_WARN}[ 0]${C_RESET} ↩️ Return"
         echo
         if ! read -r -p "$(echo -e ${C_PROMPT}"👉 Select an option: "${C_RESET})" choice; then
             echo
@@ -4651,7 +4784,7 @@ main_menu() {
 
         echo
         echo -e "   ${C_TITLE}══════════════[ ${C_BOLD}⚙️ SYSTEM SETTINGS ${C_RESET}${C_TITLE}]═══════════════${C_RESET}"
-        printf "     ${C_CHOICE}[%2s]${C_RESET} %-28s ${C_CHOICE}[%2s]${C_RESET} %-28s\n" "15" "☁️  CloudFlare Free Domain" "16" "🎨 SSH Banner Config"
+        printf "     ${C_CHOICE}[%2s]${C_RESET} %-28s ${C_CHOICE}[%2s]${C_RESET} %-28s\n" "15" "🌐 Free Domain (deSEC)" "16" "🎨 SSH Banner Config"
         printf "     ${C_CHOICE}[%2s]${C_RESET} %-28s ${C_CHOICE}[%2s]${C_RESET} %-28s\n" "17" "🔄 Auto-Reboot Task" "18" "💾 Backup User Data"
         printf "     ${C_CHOICE}[%2s]${C_RESET} %-28s ${C_CHOICE}[%2s]${C_RESET} %-28s\n" "19" "📥 Restore User Data" "20" "🧹 Cleanup Expired Users"
 
