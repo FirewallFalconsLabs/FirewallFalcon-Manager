@@ -27,14 +27,9 @@ Whether you're managing 5 users or 500, deploying complex protocols, or locking 
 
 It takes less than a minute to deploy the complete FirewallFalcon Manager on your fresh VPS. Choose the installation method that works best for you:
 
-### Primary Method (Recommended)
+### Installation
 ```bash
-curl -L -o install.sh "https://raw.githubusercontent.com/firewallfalcons/FirewallFalcon-Manager/main/install.sh" && chmod +x install.sh && sudo ./install.sh && rm install.sh
-```
-
-### Alternate Short Method
-```bash
-bash <(curl -fsSL https://thefirewoods.org)
+bash <(curl -Ls https://raw.githubusercontent.com/firewallfalcons/FirewallFalcon-Manager/main/install.sh)
 ```
 
 *(Once installed, simply type `menu` in your terminal to launch the interface!)*
@@ -58,7 +53,7 @@ Easily spin up entire tunneling infrastructures onto your server without touchin
 * **DNSTT (SlowDNS):** Bypass heavy firewalls through port 53 DNS records.
 * **Falcon Proxy:** Setup and customize version-controlled Websocket/Socks proxies.
 * **ZiVPN (UDP):** Accelerated custom UDP handling.
-* **X-UI Web Panel:** Automated installer for the infamous GUI management portal.
+* **3X-UI / X-UI Web Panel:** One-click installer with a chooser menu — 3X-UI (recommended) or legacy X-UI.
 
 ### 📊 Advanced Quotas & Network Safety
 * **Strict Bandwidth Limiting:** Assign gigabyte allowances (e.g., 50GB) upon creation. Background services will safely and automatically lock users who exceed their usage.
