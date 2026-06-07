@@ -2334,8 +2334,12 @@ backup_edge_configs() {
 
 ensure_edge_stack_packages() {
     local missing_packages=()
-    command -v haproxy &> /dev/null || missing_packages+=("haproxy")
-    command -v nginx &> /dev/null || missing_packages+=("nginx")
+    if ! command -v haproxy &> /dev/null || [ ! -f "/etc/haproxy/haproxy.cfg" ]; then
+        missing_packages+=("haproxy")
+    fi
+    if ! command -v nginx &> /dev/null || [ ! -f "/etc/nginx/nginx.conf" ]; then
+        missing_packages+=("nginx")
+    fi
     command -v openssl &> /dev/null || missing_packages+=("openssl")
 
     if (( ${#missing_packages[@]} > 0 )); then
