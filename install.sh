@@ -13,8 +13,22 @@ echo "Installing FirewallFalcon Manager..."
 MENU_URL="https://raw.githubusercontent.com/firewallfalcons/FirewallFalcon-Manager/main/menu.sh"
 SSHD_URL="https://raw.githubusercontent.com/firewallfalcons/FirewallFalcon-Manager/main/ssh"
 
+# Helper to download files (supports both curl and wget)
+download_file() {
+    local dest=$1
+    local url=$2
+    if command -v curl &> /dev/null; then
+        curl -sL -o "$dest" "$url"
+    elif command -v wget &> /dev/null; then
+        wget -q -O "$dest" "$url"
+    else
+        echo "Error: Neither curl nor wget is installed."
+        exit 1
+    fi
+}
+
 # Install menu
-wget -4 -q -O /usr/local/bin/menu "$MENU_URL"
+download_file /usr/local/bin/menu "$MENU_URL"
 chmod +x /usr/local/bin/menu
 
 echo "Applying FirewallFalcon SSH configuration..."
@@ -26,7 +40,7 @@ BACKUP="/etc/ssh/sshd_config.backup.$(date +%F-%H%M%S)"
 cp "$SSHD_CONFIG" "$BACKUP"
 
 # Download FirewallFalcon SSH config
-wget -4 -q -O "$SSHD_CONFIG" "$SSHD_URL"
+download_file "$SSHD_CONFIG" "$SSHD_URL"
 chmod 600 "$SSHD_CONFIG"
 
 # Validate SSH config (silent)
