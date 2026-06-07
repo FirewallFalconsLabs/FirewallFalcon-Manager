@@ -3759,15 +3759,15 @@ install_panel_menu() {
     clear; show_banner
     echo -e "${C_BOLD}${C_PURPLE}--- 💻 Install X-UI / 3X-UI Panel ---${C_RESET}"
     echo -e "\n${C_CYAN}Select which panel to install:${C_RESET}\n"
-    printf "  ${C_CHOICE}[ 1]${C_RESET} %-45s %s\n" "📦 X-UI Panel (alireza0)" "${C_STATUS_A}⭐ Default${C_RESET}"
-    printf "  ${C_CHOICE}[ 2]${C_RESET} %-45s %s\n" "🚀 3X-UI Panel (MHSanaei)" ""
+    printf "  ${C_CHOICE}[ 1]${C_RESET} %-45s %s\n" "🚀 3X-UI Panel (MHSanaei)" "${C_STATUS_A}⭐ Default${C_RESET}"
+    printf "  ${C_CHOICE}[ 2]${C_RESET} %-45s %s\n" "📦 X-UI Panel (alireza0)" ""
     echo -e "\n  ${C_RED}[ 0]${C_RESET} ❌ Cancel"
     echo
     read -p "👉 Select panel [1]: " panel_choice
     panel_choice=${panel_choice:-1}
     case $panel_choice in
-        1) install_xui_panel ;;
-        2) install_3xui_panel ;;
+        1) install_3xui_panel ;;
+        2) install_xui_panel ;;
         0) echo -e "\n${C_YELLOW}❌ Installation cancelled.${C_RESET}" ;;
         *) echo -e "\n${C_RED}❌ Invalid option.${C_RESET}" ;;
     esac
