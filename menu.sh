@@ -3179,7 +3179,7 @@ install_falcon_proxy() {
         if [[ "$confirm_reinstall" != "y" ]]; then return; fi
     fi
 
-    echo -e "\n${C_BLUE}🌐 Fetching available versions from GitHub...${C_RESET}"
+    echo -e "\n${C_BLUE}🌐 Fetching available versions from Codeberg...${C_RESET}"
     local releases_json=$(curl -s "https://codeberg.org/api/v1/repos/firewallfalcons/FirewallFalcon-Manager/releases")
     if [[ -z "$releases_json" || "$releases_json" == "[]" ]]; then
         echo -e "${C_RED}❌ Error: Could not fetch releases. Check internet or API limits.${C_RESET}"
