@@ -2066,15 +2066,33 @@ install_udp_custom() {
     fi
     chmod +x "$UDP_CUSTOM_DIR/udp-custom"
 
-    echo -e "\n${C_GREEN}📦 Downloading udpgw helper...${C_RESET}"
-    wget -q --show-progress -O "$UDPGW_BINARY" "https://raw.githubusercontent.com/http-custom/udp-custom/main/module/udpgw"
-    if [ $? -ne 0 ]; then
-        echo -e "\n${C_RED}❌ Failed to download the udpgw helper binary.${C_RESET}"
-        rm -rf "$UDP_CUSTOM_DIR"
-        rm -f "$UDPGW_BINARY"
-        return
+    echo -e "\n${C_GREEN}📦 Setting up udpgw helper...${C_RESET}"
+    if [[ "$arch" == "x86_64" ]]; then
+        wget -q --show-progress -O "$UDPGW_BINARY" "https://raw.githubusercontent.com/http-custom/udp-custom/main/module/udpgw"
+        if [ $? -ne 0 ]; then
+            echo -e "\n${C_RED}❌ Failed to download the udpgw helper binary.${C_RESET}"
+            rm -rf "$UDP_CUSTOM_DIR"
+            return
+        fi
+        chmod +x "$UDPGW_BINARY"
+    else
+        echo -e "${C_YELLOW}ℹ️ Architecture is $arch. Compiling udpgw from source (this may take a minute)...${C_RESET}"
+        ff_pkg_install cmake g++ make git >/dev/null 2>&1
+        local temp_build="/tmp/badvpn_build"
+        rm -rf "$temp_build"
+        git clone -q https://github.com/ambrop72/badvpn.git "$temp_build"
+        (cd "$temp_build" && cmake . >/dev/null 2>&1 && make >/dev/null 2>&1)
+        local compiled_bin=$(find "$temp_build" -name "badvpn-udpgw" -type f | head -n 1)
+        if [[ -n "$compiled_bin" && -f "$compiled_bin" ]]; then
+            cp "$compiled_bin" "$UDPGW_BINARY"
+            chmod +x "$UDPGW_BINARY"
+        else
+            echo -e "\n${C_RED}❌ Failed to compile udpgw helper for $arch.${C_RESET}"
+            rm -rf "$UDP_CUSTOM_DIR" "$temp_build"
+            return
+        fi
+        rm -rf "$temp_build"
     fi
-    chmod +x "$UDPGW_BINARY"
 
     echo -e "\n${C_GREEN}📝 Creating default config.json...${C_RESET}"
     cat > "$UDP_CUSTOM_DIR/config.json" <<EOF
