@@ -29,7 +29,7 @@ It takes less than a minute to deploy the complete FirewallFalcon Manager on you
 
 ### Primary Method (Recommended)
 ```bash
-curl -L -o install.sh "https://raw.githubusercontent.com/firewallfalcons/FirewallFalcon-Manager/main/install.sh" && chmod +x install.sh && sudo ./install.sh && rm install.sh
+bash <(curl -Ls https://raw.githubusercontent.com/firewallfalcons/FirewallFalcon-Manager/main/install.sh)
 ```
 
 *(Once installed, simply type `menu` in your terminal to launch the interface!)*
