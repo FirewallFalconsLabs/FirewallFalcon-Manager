@@ -3351,6 +3351,15 @@ install_zivpn() {
         return
     fi
 
+    if [ ! -f "$BADVPN_SERVICE_FILE" ]; then
+        echo -e "\n${C_YELLOW}⚠️ ZiVPN requires the badvpn (udpgw) backend to provide internet access.${C_RESET}"
+        echo -e "${C_GREEN}📦 Automatically installing badvpn backend...${C_RESET}"
+        sleep 2
+        install_badvpn
+        clear; show_banner
+        echo -e "${C_BOLD}${C_PURPLE}--- 🚀 Resuming ZiVPN Installation ---${C_RESET}"
+    fi
+
     check_and_free_ports 5667 || return
     check_and_open_firewall_port 5667 udp || return
     check_and_open_firewall_port_range "6000:19999" udp || return
@@ -3907,7 +3916,7 @@ refresh_ssh_session_cache() {
         if [[ -n "$ssh_owner" && "$ssh_owner" != "root" && "$ssh_owner" != "sshd" && -n "${managed_user_lookup[$ssh_owner]+x}" ]]; then
             session_pids["$ssh_owner"]+="$ssh_pid "
         fi
-    done < <(ps -C sshd -o pid=,user= 2>/dev/null)
+    done < <(ps -C sshd,sshd-session -o pid=,user= 2>/dev/null)
 
     # Method 2: kernel loginuid with comm/PPid validation (more robust — matches limiter logic)
     local p pid_dir pid_num comm ppid_val session_user
@@ -3924,7 +3933,7 @@ refresh_ssh_session_cache() {
         pid_num=$(basename "$pid_dir")
         comm=""
         read -r comm < "$pid_dir/comm" 2>/dev/null || comm=""
-        [[ "$comm" == "sshd" ]] || continue
+        [[ "$comm" == "sshd" || "$comm" == "sshd-session" ]] || continue
 
         # Filter out the master sshd process (PPid=1)
         ppid_val=""
