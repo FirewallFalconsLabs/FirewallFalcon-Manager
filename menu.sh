@@ -687,6 +687,24 @@ while true; do
         sleep "$SCAN_INTERVAL"
         continue
     fi
+    
+    # Daily reset logic
+    today=$(date +%Y-%m-%d)
+    if [[ ! -f "$BW_DIR/current_date" ]]; then
+        echo "$today" > "$BW_DIR/current_date"
+    fi
+    saved_date=$(cat "$BW_DIR/current_date" 2>/dev/null || echo "$today")
+    if [[ "$today" != "$saved_date" ]]; then
+        # New day! Reset daily usage and unlock users locked due to daily limit
+        rm -f "$BW_DIR/"*.daily_usage 2>/dev/null
+        for locked_file in "$BW_DIR/"*.daily_locked; do
+            [[ -f "$locked_file" ]] || continue
+            locked_user=$(basename "$locked_file" .daily_locked)
+            usermod -U "$locked_user" &>/dev/null
+            rm -f "$locked_file"
+        done
+        echo "$today" > "$BW_DIR/current_date"
+    fi
 
     printf -v current_ts '%(%s)T' -1
     dynamic_banners_enabled=false
@@ -754,8 +772,10 @@ while true; do
         dynamic_banners_enabled=true
     fi
 
-    while IFS=: read -r user pass expiry limit bandwidth_gb _extra; do
+    while IFS=: read -r user pass expiry limit bandwidth_gb daily_bandwidth_gb _extra; do
         [[ -z "$user" || "$user" == \#* ]] && continue
+        
+        [[ ! "$daily_bandwidth_gb" =~ ^[0-9]+\.?[0-9]*$ ]] && daily_bandwidth_gb=0
 
         # CRITICAL: unset before declare to reset per-user (bash declare is function-scoped)
         unset unique_pids
@@ -838,12 +858,36 @@ while true; do
             banner_content="<br><font color=\"yellow\"><b>      ✨ ACCOUNT STATUS ✨      </b></font><br><br>"
             banner_content+="<font color=\"white\">👤 <b>Username   :</b> $user</font><br>"
             banner_content+="<font color=\"white\">📅 <b>Expiration :</b> $expiry ($days_left)</font><br>"
-            banner_content+="<font color=\"white\">📊 <b>Bandwidth  :</b> $bw_info</font><br>"
+            
+            if [[ "$bandwidth_gb" != "0" ]]; then
+                banner_content+="<font color=\"white\">📊 <b>Total BW   :</b> $bw_info</font><br>"
+            fi
+            
+            if [[ "$daily_bandwidth_gb" != "0" ]]; then
+                daily_usagefile="$BW_DIR/${user}.daily_usage"
+                accum_disp=0
+                if [[ -f "$daily_usagefile" ]]; then
+                    read -r accum_disp < "$daily_usagefile"
+                    [[ "$accum_disp" =~ ^[0-9]+$ ]] || accum_disp=0
+                fi
+                used_gb_int=$((accum_disp / 1073741824))
+                used_gb_frac=$(( (accum_disp % 1073741824) * 100 / 1073741824 ))
+                printf -v used_gb "%d.%02d" "$used_gb_int" "$used_gb_frac"
+                quota_b=$(( ${daily_bandwidth_gb%%.*} * 1073741824 ))
+                remain_b=$(( quota_b - accum_disp ))
+                (( remain_b < 0 )) && remain_b=0
+                remain_gb_int=$((remain_b / 1073741824))
+                remain_gb_frac=$(( (remain_b % 1073741824) * 100 / 1073741824 ))
+                printf -v remain_gb "%d.%02d" "$remain_gb_int" "$remain_gb_frac"
+                daily_bw_info="${used_gb}/${daily_bandwidth_gb} GB used | ${remain_gb} GB left"
+                banner_content+="<font color=\"white\">📊 <b>Daily BW   :</b> $daily_bw_info</font><br>"
+            fi
+            
             banner_content+="<font color=\"white\">🔌 <b>Sessions   :</b> $online_count/$limit</font><br><br>"
             write_banner_if_changed "$user" "$banner_content"
         fi
 
-        [[ -z "$bandwidth_gb" || "$bandwidth_gb" == "0" ]] && continue
+        [[ ( -z "$bandwidth_gb" || "$bandwidth_gb" == "0" ) && ( -z "$daily_bandwidth_gb" || "$daily_bandwidth_gb" == "0" ) ]] && continue
 
         usagefile="$BW_DIR/${user}.usage"
         accumulated=0
@@ -898,11 +942,32 @@ while true; do
         printf "%s\n" "$new_total" > "$usagefile"
 
         quota_bytes=$(( ${bandwidth_gb%%.*} * 1073741824 ))
-        if [[ "$quota_bytes" =~ ^[0-9]+$ ]] && (( new_total >= quota_bytes )); then
+        if [[ "$bandwidth_gb" != "0" && "$quota_bytes" =~ ^[0-9]+$ ]] && (( new_total >= quota_bytes )); then
             if ! $user_locked; then
                 usermod -L "$user" &>/dev/null
                 killall -u "$user" -9 &>/dev/null
                 locked_users["$user"]=1
+                user_locked=true
+            fi
+        fi
+        
+        daily_usagefile="$BW_DIR/${user}.daily_usage"
+        daily_accumulated=0
+        if [[ -f "$daily_usagefile" ]]; then
+            read -r daily_accumulated < "$daily_usagefile"
+            [[ "$daily_accumulated" =~ ^[0-9]+$ ]] || daily_accumulated=0
+        fi
+        new_daily_total=$((daily_accumulated + delta_total))
+        printf "%s\n" "$new_daily_total" > "$daily_usagefile"
+        
+        d_quota_bytes=$(( ${daily_bandwidth_gb%%.*} * 1073741824 ))
+        if [[ "$daily_bandwidth_gb" != "0" && "$d_quota_bytes" =~ ^[0-9]+$ ]] && (( new_daily_total >= d_quota_bytes )); then
+            if ! $user_locked; then
+                usermod -L "$user" &>/dev/null
+                killall -u "$user" -9 &>/dev/null
+                locked_users["$user"]=1
+                user_locked=true
+                touch "$BW_DIR/${user}.daily_locked"
             fi
         fi
     done < "$DB_FILE"
@@ -1489,6 +1554,9 @@ create_user() {
     read -p "📦 Enter bandwidth limit in GB (0 = unlimited) [0]: " bandwidth_gb
     bandwidth_gb=${bandwidth_gb:-0}
     if ! [[ "$bandwidth_gb" =~ ^[0-9]+\.?[0-9]*$ ]]; then echo -e "\n${C_RED}❌ Invalid number.${C_RESET}"; return; fi
+    read -p "📦 Enter DAILY bandwidth limit in GB (0 = unlimited) [0]: " daily_bandwidth_gb
+    daily_bandwidth_gb=${daily_bandwidth_gb:-0}
+    if ! [[ "$daily_bandwidth_gb" =~ ^[0-9]+\.?[0-9]*$ ]]; then echo -e "\n${C_RED}❌ Invalid number.${C_RESET}"; return; fi
     local expire_date
     expire_date=$(date -d "+$days days" +%Y-%m-%d)
     ensure_firewallfalcon_system_group
@@ -1499,10 +1567,12 @@ create_user() {
     fi
     usermod -aG "$FF_USERS_GROUP" "$username" 2>/dev/null
     echo "$username:$password" | chpasswd; chage -E "$expire_date" "$username"
-    echo "$username:$password:$expire_date:$limit:$bandwidth_gb:trial" >> "$DB_FILE"
+    echo "$username:$password:$expire_date:$limit:$bandwidth_gb:$daily_bandwidth_gb:trial" >> "$DB_FILE"
     
     local bw_display="Unlimited"
     if [[ "$bandwidth_gb" != "0" ]]; then bw_display="${bandwidth_gb} GB"; fi
+    local daily_bw_display="Unlimited"
+    if [[ "$daily_bandwidth_gb" != "0" ]]; then daily_bw_display="${daily_bandwidth_gb} GB/day"; fi
     
     clear; show_banner
     if [[ "$adopt_existing" == "true" ]]; then
@@ -1514,7 +1584,8 @@ create_user() {
     echo -e "  - 🔑 Password:          ${C_YELLOW}$password${C_RESET}"
     echo -e "  - 🗓️ Expires on:        ${C_YELLOW}$expire_date${C_RESET}"
     echo -e "  - 📶 Connection Limit:  ${C_YELLOW}$limit${C_RESET}"
-    echo -e "  - 📦 Bandwidth Limit:   ${C_YELLOW}$bw_display${C_RESET}"
+    echo -e "  - 📦 Total Bandwidth:   ${C_YELLOW}$bw_display${C_RESET}"
+    echo -e "  - 📦 Daily Bandwidth:   ${C_YELLOW}$daily_bw_display${C_RESET}"
     echo -e "    ${C_DIM}(Active monitoring service will enforce these limits)${C_RESET}"
 
     # Auto-ask for config generation
@@ -1549,10 +1620,13 @@ edit_user() {
         
         # Show current user details
         local current_line; current_line=$(grep "^$username:" "$DB_FILE")
-        local cur_pass cur_expiry cur_limit cur_bw
-        IFS=: read -r _ cur_pass cur_expiry cur_limit cur_bw _ <<< "$current_line"
+        local cur_pass cur_expiry cur_limit cur_bw cur_daily_bw
+        IFS=: read -r _ cur_pass cur_expiry cur_limit cur_bw cur_daily_bw _ <<< "$current_line"
         [[ -z "$cur_bw" ]] && cur_bw="0"
+        [[ ! "$cur_daily_bw" =~ ^[0-9]+\.?[0-9]*$ ]] && cur_daily_bw="0"
+        
         local cur_bw_display="Unlimited"; [[ "$cur_bw" != "0" ]] && cur_bw_display="${cur_bw} GB"
+        local cur_daily_bw_display="Unlimited"; [[ "$cur_daily_bw" != "0" ]] && cur_daily_bw_display="${cur_daily_bw} GB/day"
         
         # Show bandwidth usage
         local bw_used_display="N/A"
@@ -1565,13 +1639,24 @@ edit_user() {
             fi
         fi
         
-        echo -e "\n  ${C_DIM}Current: Pass=${C_YELLOW}$cur_pass${C_RESET}${C_DIM} Exp=${C_YELLOW}$cur_expiry${C_RESET}${C_DIM} Conn=${C_YELLOW}$cur_limit${C_RESET}${C_DIM} BW=${C_YELLOW}$cur_bw_display${C_RESET}${C_DIM} Used=${C_CYAN}$bw_used_display${C_RESET}"
+        local daily_bw_used_display="N/A"
+        if [[ -f "$BANDWIDTH_DIR/${username}.daily_usage" ]]; then
+            local d_used_bytes=0; read -r d_used_bytes < "$BANDWIDTH_DIR/${username}.daily_usage" 2>/dev/null || d_used_bytes=0
+            if [[ -n "$d_used_bytes" && "$d_used_bytes" != "0" ]]; then
+                daily_bw_used_display=$(awk "BEGIN {printf \"%.2f GB\", $d_used_bytes / 1073741824}")
+            else
+                daily_bw_used_display="0.00 GB"
+            fi
+        fi
+        
+        echo -e "\n  ${C_DIM}Current: Pass=${C_YELLOW}$cur_pass${C_RESET}${C_DIM} Exp=${C_YELLOW}$cur_expiry${C_RESET}${C_DIM} Conn=${C_YELLOW}$cur_limit${C_RESET}${C_DIM} BW=${C_YELLOW}$cur_bw_display${C_RESET}${C_DIM} Used=${C_CYAN}$bw_used_display${C_RESET}${C_DIM} Daily BW=${C_YELLOW}$cur_daily_bw_display${C_RESET}${C_DIM} Daily Used=${C_CYAN}$daily_bw_used_display${C_RESET}"
         echo -e "\nSelect a detail to edit:\n"
         printf "  ${C_GREEN}[ 1]${C_RESET} %-35s\n" "🔑 Change Password"
         printf "  ${C_GREEN}[ 2]${C_RESET} %-35s\n" "🗓️ Change Expiration Date"
         printf "  ${C_GREEN}[ 3]${C_RESET} %-35s\n" "📶 Change Connection Limit"
-        printf "  ${C_GREEN}[ 4]${C_RESET} %-35s\n" "📦 Change Bandwidth Limit"
-        printf "  ${C_GREEN}[ 5]${C_RESET} %-35s\n" "🔄 Reset Bandwidth Counter"
+        printf "  ${C_GREEN}[ 4]${C_RESET} %-35s\n" "📦 Change Total Bandwidth Limit"
+        printf "  ${C_GREEN}[ 5]${C_RESET} %-35s\n" "📦 Change Daily Bandwidth Limit"
+        printf "  ${C_GREEN}[ 6]${C_RESET} %-35s\n" "🔄 Reset Bandwidth Counters"
         echo -e "\n  ${C_RED}[ 0]${C_RESET} ✅ Finish Editing"
         echo
         if ! read -r -p "👉 Enter your choice: " edit_choice; then
@@ -1587,25 +1672,25 @@ edit_user() {
                    echo -e "${C_GREEN}🔑 Auto-generated: ${C_YELLOW}$new_pass${C_RESET}"
                fi
                echo "$username:$new_pass" | chpasswd
-               sed -i "s/^$username:.*/$username:$new_pass:$cur_expiry:$cur_limit:$cur_bw/" "$DB_FILE"
+               sed -i "s/^$username:.*/$username:$new_pass:$cur_expiry:$cur_limit:$cur_bw:$cur_daily_bw/" "$DB_FILE"
                echo -e "\n${C_GREEN}✅ Password for '$username' changed to: ${C_YELLOW}$new_pass${C_RESET}"
                ;;
             2) read -p "Enter new duration (in days from today): " days
                if [[ "$days" =~ ^[0-9]+$ ]]; then
                    local new_expire_date; new_expire_date=$(date -d "+$days days" +%Y-%m-%d); chage -E "$new_expire_date" "$username"
-                   sed -i "s/^$username:.*/$username:$cur_pass:$new_expire_date:$cur_limit:$cur_bw/" "$DB_FILE"
+                   sed -i "s/^$username:.*/$username:$cur_pass:$new_expire_date:$cur_limit:$cur_bw:$cur_daily_bw/" "$DB_FILE"
                    echo -e "\n${C_GREEN}✅ Expiration for '$username' set to ${C_YELLOW}$new_expire_date${C_RESET}."
                else echo -e "\n${C_RED}❌ Invalid number of days.${C_RESET}"; fi ;;
             3) read -p "Enter new simultaneous connection limit: " new_limit
                if [[ "$new_limit" =~ ^[0-9]+$ ]]; then
-                   sed -i "s/^$username:.*/$username:$cur_pass:$cur_expiry:$new_limit:$cur_bw/" "$DB_FILE"
+                   sed -i "s/^$username:.*/$username:$cur_pass:$cur_expiry:$new_limit:$cur_bw:$cur_daily_bw/" "$DB_FILE"
                    echo -e "\n${C_GREEN}✅ Connection limit for '$username' set to ${C_YELLOW}$new_limit${C_RESET}."
                else echo -e "\n${C_RED}❌ Invalid limit.${C_RESET}"; fi ;;
-            4) read -p "Enter new bandwidth limit in GB (0 = unlimited): " new_bw
+            4) read -p "Enter new TOTAL bandwidth limit in GB (0 = unlimited): " new_bw
                if [[ "$new_bw" =~ ^[0-9]+\.?[0-9]*$ ]]; then
-                   sed -i "s/^$username:.*/$username:$cur_pass:$cur_expiry:$cur_limit:$new_bw/" "$DB_FILE"
+                   sed -i "s/^$username:.*/$username:$cur_pass:$cur_expiry:$cur_limit:$new_bw:$cur_daily_bw/" "$DB_FILE"
                    local bw_msg="Unlimited"; [[ "$new_bw" != "0" ]] && bw_msg="${new_bw} GB"
-                   echo -e "\n${C_GREEN}✅ Bandwidth limit for '$username' set to ${C_YELLOW}$bw_msg${C_RESET}."
+                   echo -e "\n${C_GREEN}✅ Total bandwidth limit for '$username' set to ${C_YELLOW}$bw_msg${C_RESET}."
                    # Unlock user if they were locked due to bandwidth
                    if [[ "$new_bw" == "0" ]] || [[ -f "$BANDWIDTH_DIR/${username}.usage" ]]; then
                        local used_bytes; used_bytes=$(cat "$BANDWIDTH_DIR/${username}.usage" 2>/dev/null || echo 0)
@@ -1615,11 +1700,28 @@ edit_user() {
                        fi
                    fi
                else echo -e "\n${C_RED}❌ Invalid bandwidth value.${C_RESET}"; fi ;;
-            5)
+            5) read -p "Enter new DAILY bandwidth limit in GB (0 = unlimited): " new_daily_bw
+               if [[ "$new_daily_bw" =~ ^[0-9]+\.?[0-9]*$ ]]; then
+                   sed -i "s/^$username:.*/$username:$cur_pass:$cur_expiry:$cur_limit:$cur_bw:$new_daily_bw/" "$DB_FILE"
+                   local daily_bw_msg="Unlimited"; [[ "$new_daily_bw" != "0" ]] && daily_bw_msg="${new_daily_bw} GB/day"
+                   echo -e "\n${C_GREEN}✅ Daily bandwidth limit for '$username' set to ${C_YELLOW}$daily_bw_msg${C_RESET}."
+                   # Unlock user if they were locked due to daily bandwidth
+                   if [[ "$new_daily_bw" == "0" ]] || [[ -f "$BANDWIDTH_DIR/${username}.daily_usage" ]]; then
+                       local d_used_bytes; d_used_bytes=$(cat "$BANDWIDTH_DIR/${username}.daily_usage" 2>/dev/null || echo 0)
+                       local new_d_quota_bytes; new_d_quota_bytes=$(awk "BEGIN {printf \"%.0f\", $new_daily_bw * 1073741824}")
+                       if [[ "$new_daily_bw" == "0" ]] || [[ "$d_used_bytes" -lt "$new_d_quota_bytes" ]]; then
+                           usermod -U "$username" &>/dev/null
+                           rm -f "$BANDWIDTH_DIR/${username}.daily_locked"
+                       fi
+                   fi
+               else echo -e "\n${C_RED}❌ Invalid bandwidth value.${C_RESET}"; fi ;;
+            6)
                echo "0" > "$BANDWIDTH_DIR/${username}.usage"
+               echo "0" > "$BANDWIDTH_DIR/${username}.daily_usage"
+               rm -f "$BANDWIDTH_DIR/${username}.daily_locked"
                # Unlock user if they were locked due to bandwidth
                usermod -U "$username" &>/dev/null
-               echo -e "\n${C_GREEN}✅ Bandwidth counter for '$username' has been reset to 0.${C_RESET}"
+               echo -e "\n${C_GREEN}✅ All bandwidth counters for '$username' have been reset to 0.${C_RESET}"
                ;;
             0) return ;;
             *) echo -e "\n${C_RED}❌ Invalid option.${C_RESET}" ;;
@@ -1676,9 +1778,9 @@ list_users() {
         return
     fi
     echo -e "${C_BOLD}${C_PURPLE}--- 📋 Managed Users ---${C_RESET}"
-    echo -e "${C_CYAN}=========================================================================================${C_RESET}"
-    printf "${C_BOLD}${C_WHITE}%-18s | %-12s | %-10s | %-15s | %-20s${C_RESET}\n" "USERNAME" "EXPIRES" "CONNS" "BANDWIDTH" "STATUS"
-    echo -e "${C_CYAN}-----------------------------------------------------------------------------------------${C_RESET}"
+    echo -e "${C_YELLOW}---------------------------------------------------------------------------------------------------${C_RESET}"
+    printf "${C_BOLD}${C_WHITE}%-18s | %-12s | %-10s | %-25s | %-20s${C_RESET}\n" "USERNAME" "EXPIRATION" "SESSIONS" "BANDWIDTH" "STATUS"
+    echo -e "${C_YELLOW}---------------------------------------------------------------------------------------------------${C_RESET}"
 
     local current_ts
     printf -v current_ts '%(%s)T' -1
@@ -1701,7 +1803,7 @@ list_users() {
     fi
     refresh_ssh_session_cache
 
-    while IFS=: read -r user pass expiry limit bandwidth_gb _extra; do
+    while IFS=: read -r user pass expiry limit bandwidth_gb daily_bandwidth_gb _extra; do
         local online_count="${SSH_SESSION_COUNTS[$user]:-0}"
         local connection_string="$online_count / $limit"
         local plain_status="Active"
@@ -1709,7 +1811,12 @@ list_users() {
         local quota_exceeded=false
 
         [[ -z "$bandwidth_gb" ]] && bandwidth_gb="0"
+        [[ ! "$daily_bandwidth_gb" =~ ^[0-9]+\.?[0-9]*$ ]] && daily_bandwidth_gb="0"
+        
         local bw_string="Unlimited"
+        local total_str=""
+        local daily_str=""
+        
         if [[ "$bandwidth_gb" != "0" ]]; then
             local used_bytes=0
             if [[ -f "$BANDWIDTH_DIR/${user}.usage" ]]; then
@@ -1718,12 +1825,36 @@ list_users() {
             fi
             local used_gb
             used_gb=$(awk "BEGIN {printf \"%.1f\", $used_bytes / 1073741824}")
-            bw_string="${used_gb}/${bandwidth_gb}GB"
+            total_str="${used_gb}/${bandwidth_gb}G"
             local quota_bytes
             quota_bytes=$(awk "BEGIN {printf \"%.0f\", $bandwidth_gb * 1073741824}")
             if [[ "$quota_bytes" =~ ^[0-9]+$ ]] && (( used_bytes >= quota_bytes )); then
                 quota_exceeded=true
             fi
+        fi
+        
+        if [[ "$daily_bandwidth_gb" != "0" ]]; then
+            local d_used_bytes=0
+            if [[ -f "$BANDWIDTH_DIR/${user}.daily_usage" ]]; then
+                read -r d_used_bytes < "$BANDWIDTH_DIR/${user}.daily_usage" 2>/dev/null || d_used_bytes=0
+                [[ "$d_used_bytes" =~ ^[0-9]+$ ]] || d_used_bytes=0
+            fi
+            local d_used_gb
+            d_used_gb=$(awk "BEGIN {printf \"%.1f\", $d_used_bytes / 1073741824}")
+            daily_str="${d_used_gb}/${daily_bandwidth_gb}G/d"
+            local d_quota_bytes
+            d_quota_bytes=$(awk "BEGIN {printf \"%.0f\", $daily_bandwidth_gb * 1073741824}")
+            if [[ "$d_quota_bytes" =~ ^[0-9]+$ ]] && (( d_used_bytes >= d_quota_bytes )); then
+                quota_exceeded=true
+            fi
+        fi
+        
+        if [[ -n "$total_str" && -n "$daily_str" ]]; then
+            bw_string="$total_str | $daily_str"
+        elif [[ -n "$total_str" ]]; then
+            bw_string="$total_str"
+        elif [[ -n "$daily_str" ]]; then
+            bw_string="$daily_str"
         fi
 
         if [[ -z "${system_user_lookup[$user]+x}" ]]; then
@@ -1761,7 +1892,7 @@ list_users() {
             "Not Found") line_color="$C_DIM" ;;
         esac
 
-        printf "${line_color}%-18s ${C_RESET}| ${C_YELLOW}%-12s ${C_RESET}| ${C_CYAN}%-10s ${C_RESET}| ${C_ORANGE}%-15s ${C_RESET}| %-20s\n" "$user" "$expiry" "$connection_string" "$bw_string" "$status"
+        printf "${line_color}%-18s ${C_RESET}| ${C_YELLOW}%-12s ${C_RESET}| ${C_CYAN}%-10s ${C_RESET}| ${C_ORANGE}%-25s ${C_RESET}| %-20s\n" "$user" "$expiry" "$connection_string" "$bw_string" "$status"
     done < <(sort "$DB_FILE")
     echo -e "${C_CYAN}=========================================================================================${C_RESET}\n"
 }
@@ -4380,9 +4511,14 @@ bulk_create_users() {
     bandwidth_gb=${bandwidth_gb:-0}
     if ! [[ "$bandwidth_gb" =~ ^[0-9]+\.?[0-9]*$ ]]; then echo -e "\n${C_RED}❌ Invalid number.${C_RESET}"; return; fi
     
+    read -p "📦 DAILY bandwidth limit in GB per user (0 = unlimited) [0]: " daily_bandwidth_gb
+    daily_bandwidth_gb=${daily_bandwidth_gb:-0}
+    if ! [[ "$daily_bandwidth_gb" =~ ^[0-9]+\.?[0-9]*$ ]]; then echo -e "\n${C_RED}❌ Invalid number.${C_RESET}"; return; fi
+    
     local expire_date
     expire_date=$(date -d "+$days days" +%Y-%m-%d)
     local bw_display="Unlimited"; [[ "$bandwidth_gb" != "0" ]] && bw_display="${bandwidth_gb} GB"
+    local daily_bw_display="Unlimited"; [[ "$daily_bandwidth_gb" != "0" ]] && daily_bw_display="${daily_bandwidth_gb} GB/day"
     ensure_firewallfalcon_system_group
     
     echo -e "\n${C_BLUE}⚙️ Creating $count users with prefix '${prefix}'...${C_RESET}\n"
@@ -4402,13 +4538,13 @@ bulk_create_users() {
         usermod -aG "$FF_USERS_GROUP" "$username" 2>/dev/null
         echo "$username:$password" | chpasswd
         chage -E "$expire_date" "$username"
-        echo "$username:$password:$expire_date:$limit:$bandwidth_gb" >> "$DB_FILE"
+        echo "$username:$password:$expire_date:$limit:$bandwidth_gb:$daily_bandwidth_gb:bulk" >> "$DB_FILE"
         printf "  ${C_GREEN}%-20s${C_RESET} | ${C_YELLOW}%-15s${C_RESET} | ${C_CYAN}%-12s${C_RESET}\n" "$username" "$password" "$expire_date"
         created=$((created + 1))
     done
     
     echo -e "${C_YELLOW}================================================================${C_RESET}"
-    echo -e "\n${C_GREEN}✅ Created $created users. Conn Limit: ${limit} | BW: ${bw_display}${C_RESET}"
+    echo -e "\n${C_GREEN}✅ Created $created users. Conn Limit: ${limit} | Total BW: ${bw_display} | Daily BW: ${daily_bw_display}${C_RESET}"
     
     invalidate_banner_cache
     refresh_dynamic_banner_routing_if_enabled
