@@ -658,12 +658,13 @@ setup_limiter_service() {
     # Combined limiter + bandwidth monitoring
     cat > "$LIMITER_SCRIPT" << 'EOF'
 #!/bin/bash
-# FirewallFalcon limiter version 2026-06-07.1
+# FirewallFalcon limiter version 2026-07-22.1
 DB_FILE="/etc/firewallfalcon/users.db"
 BW_DIR="/etc/firewallfalcon/bandwidth"
 PID_DIR="$BW_DIR/pidtrack"
 BANNER_DIR="/etc/firewallfalcon/banners"
-SCAN_INTERVAL=30
+SCAN_INTERVAL=15
+CONN_LOCK_DURATION=120
 
 mkdir -p "$BW_DIR" "$PID_DIR"
 shopt -s nullglob
@@ -705,6 +706,20 @@ while true; do
         done
         echo "$today" > "$BW_DIR/current_date"
     fi
+
+    # Connection limit auto-unlock: check marker files and unlock after CONN_LOCK_DURATION seconds
+    for conn_lock_file in "$BW_DIR/"*.conn_locked; do
+        [[ -f "$conn_lock_file" ]] || continue
+        lock_ts=0
+        read -r lock_ts < "$conn_lock_file" 2>/dev/null || lock_ts=0
+        [[ "$lock_ts" =~ ^[0-9]+$ ]] || lock_ts=0
+        printf -v now_ts '%(%s)T' -1
+        if (( now_ts - lock_ts >= CONN_LOCK_DURATION )); then
+            conn_locked_user=$(basename "$conn_lock_file" .conn_locked)
+            usermod -U "$conn_locked_user" &>/dev/null
+            rm -f "$conn_lock_file"
+        fi
+    done
 
     printf -v current_ts '%(%s)T' -1
     dynamic_banners_enabled=false
@@ -810,7 +825,7 @@ while true; do
             if ! $user_locked; then
                 usermod -L "$user" &>/dev/null
                 killall -u "$user" -9 &>/dev/null
-                (sleep 120; usermod -U "$user" &>/dev/null) &
+                printf '%s\n' "$current_ts" > "$BW_DIR/${user}.conn_locked"
                 locked_users["$user"]=1
                 user_locked=true
             else
@@ -1014,7 +1029,7 @@ EOF
 }
 
 sync_runtime_components_if_needed() {
-    local limiter_marker="# FirewallFalcon limiter version 2026-06-07.1"
+    local limiter_marker="# FirewallFalcon limiter version 2026-07-22.1"
     cleanup_legacy_bandwidth_runtime
     setup_trial_cleanup_script >/dev/null 2>&1
     if [[ ! -f "$LIMITER_SCRIPT" ]] || ! grep -Fqx "$limiter_marker" "$LIMITER_SCRIPT" 2>/dev/null; then
@@ -3077,8 +3092,12 @@ install_dnstt() {
     echo -e "${C_GREEN}⚙️ Forcing release of Port 53 (stopping systemd-resolved)...${C_RESET}"
     systemctl stop systemd-resolved >/dev/null 2>&1
     systemctl disable systemd-resolved >/dev/null 2>&1
+    # Mask it so it never starts again on reboot
+    systemctl mask systemd-resolved >/dev/null 2>&1
+    chattr -i /etc/resolv.conf &>/dev/null
     rm -f /etc/resolv.conf
-    echo "nameserver 8.8.8.8" | tee /etc/resolv.conf > /dev/null
+    printf 'nameserver 8.8.8.8\nnameserver 8.8.4.4\n' > /etc/resolv.conf
+    chattr +i /etc/resolv.conf
     # ----------------------------------------------------------------
     
     echo -e "\n${C_BLUE}🔎 Checking if port 53 (UDP) is available...${C_RESET}"
@@ -3242,13 +3261,16 @@ install_dnstt() {
     cat > "$DNSTT_SERVICE_FILE" <<-EOF
 [Unit]
 Description=DNSTT (DNS Tunnel) Server for $forward_desc
-After=network.target
+After=network-online.target
+Wants=network-online.target
+Conflicts=systemd-resolved.service
 [Service]
 Type=simple
 User=root
+ExecStartPre=/bin/bash -c 'systemctl stop systemd-resolved 2>/dev/null; systemctl mask systemd-resolved 2>/dev/null; chattr -i /etc/resolv.conf 2>/dev/null; printf "nameserver 8.8.8.8\\nnameserver 8.8.4.4\\n" > /etc/resolv.conf; chattr +i /etc/resolv.conf; sleep 1'
 ExecStart=$DNSTT_BINARY -udp :53$mtu_string -privkey-file $DNSTT_KEYS_DIR/server.key $TUNNEL_DOMAIN $FORWARD_TARGET
 Restart=always
-RestartSec=3
+RestartSec=5
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -3318,8 +3340,11 @@ uninstall_dnstt() {
     rm -f "$DNSTT_CONFIG_FILE"
     systemctl daemon-reload
     
-    echo -e "${C_YELLOW}ℹ️ Making /etc/resolv.conf writable again...${C_RESET}"
+    echo -e "${C_YELLOW}ℹ️ Restoring system DNS resolver...${C_RESET}"
     chattr -i /etc/resolv.conf &>/dev/null
+    systemctl unmask systemd-resolved &>/dev/null
+    systemctl enable systemd-resolved &>/dev/null
+    systemctl start systemd-resolved &>/dev/null
 
     echo -e "\n${C_GREEN}✅ DNSTT has been successfully uninstalled.${C_RESET}"
 }
