@@ -102,50 +102,25 @@ def get_online_sessions(target_user=None):
     if target_user and target_user not in managed_users:
         return 0
     
-    user_pids = {}
+    # Use ps to count user-owned sshd/sshd-session processes.
+    # This avoids double-counting from loginuid (which also catches root-owned privsep sshd).
     try:
-        for pid in os.listdir("/proc"):
-            if not pid.isdigit():
-                continue
-            loginuid_path = f"/proc/{pid}/loginuid"
-            comm_path = f"/proc/{pid}/comm"
-            stat_path = f"/proc/{pid}/stat"
-            if not os.path.exists(loginuid_path):
-                continue
-            with open(loginuid_path, "r") as f:
-                luid = f.read().strip()
-            if luid == "4294967295" or not luid.isdigit():
-                continue
-            
-            try:
-                import pwd
-                username = pwd.getpwuid(int(luid)).pw_name
-            except Exception:
-                code, out, _ = run_cmd(["getent", "passwd", luid])
-                if code != 0 or not out:
+        code, out, _ = run_cmd(["ps", "-C", "sshd,sshd-session", "-o", "pid=,user="], ignore_errors=True)
+        if code == 0 and out:
+            for line in out.strip().splitlines():
+                parts = line.split()
+                if len(parts) != 2:
                     continue
-                username = out.split(":")[0]
-
-            if username not in managed_users:
-                continue
-            if target_user and username != target_user:
-                continue
-
-            with open(comm_path, "r") as f:
-                comm = f.read().strip()
-            if comm not in ("sshd", "sshd-session"):
-                continue
-                
-            with open(stat_path, "r") as f:
-                stat_parts = f.read().split()
-                if len(stat_parts) >= 4:
-                    ppid = stat_parts[3]
-                    if ppid == "1":
-                        continue
-                        
-            if username not in user_pids:
-                user_pids[username] = set()
-            user_pids[username].add(pid)
+                pid, owner = parts
+                if owner in ("root", "sshd", ""):
+                    continue
+                if owner not in managed_users:
+                    continue
+                if target_user and owner != target_user:
+                    continue
+                if owner not in user_pids:
+                    user_pids[owner] = set()
+                user_pids[owner].add(pid)
     except Exception as e:
         print(f"Error checking online sessions: {e}", file=sys.stderr)
         
