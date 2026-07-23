@@ -803,13 +803,19 @@
         function showMainScreen() {
             document.getElementById('login-view').classList.add('hidden');
             document.getElementById('app-view').classList.remove('hidden');
-            loadDashboard();
-            loadSettings();
+            
+            const savedTab = localStorage.getItem('activeTab') || 'dashboard';
+            const targetNav = document.querySelector(`.nav-item[data-tab="${savedTab}"]`);
+            if (targetNav) targetNav.click();
+            
+            startPolling();
         }
 
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', () => {
                 const tab = item.getAttribute('data-tab');
+                localStorage.setItem('activeTab', tab);
+                
                 document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
                 document.querySelectorAll('.tab-page').forEach(p => p.classList.add('hidden'));
                 
@@ -823,6 +829,18 @@
                 else if (tab === 'settings') loadSettings();
             });
         });
+
+        let pollInterval = null;
+        function startPolling() {
+            if (pollInterval) clearInterval(pollInterval);
+            pollInterval = setInterval(() => {
+                if (document.getElementById('app-view').classList.contains('hidden')) return;
+                const activeTab = localStorage.getItem('activeTab') || 'dashboard';
+                if (activeTab === 'dashboard') loadDashboard(true);
+                else if (activeTab === 'users') loadUsers(true);
+                else if (activeTab === 'protocols') loadProtocols(true);
+            }, 5000); // 5 seconds for fast updates
+        }
 
         document.getElementById('btn-mobile-toggle').addEventListener('click', () => {
             document.getElementById('sidebar').classList.toggle('active');
@@ -853,7 +871,7 @@
             showLoginScreen();
         });
 
-        async function loadDashboard() {
+        async function loadDashboard(silent = false) {
             try {
                 const data = await api('GET', '/api/dashboard');
                 document.getElementById('dash-total-users').textContent = data.user_count;
@@ -868,17 +886,21 @@
 
                 renderProtocols(data.protocols, 'dash-protocols-grid');
             } catch (e) {
-                if (e.message !== 'Session expired') showToast('Telemetry fetch failed', 'error');
+                if (e.message !== 'Session expired' && !silent) showToast('Telemetry fetch failed', 'error');
             }
         }
 
-        async function loadUsers() {
+        async function loadUsers(silent = false) {
             try {
                 const data = await api('GET', '/api/users');
                 cachedUsers = data.users || [];
-                renderUsers(cachedUsers);
+                // Only re-render if the user isn't currently typing in the search box
+                const searchInput = document.getElementById('user-search-input');
+                if (document.activeElement !== searchInput || searchInput.value === '') {
+                    filterUsers();
+                }
             } catch (e) {
-                if (e.message !== 'Session expired') showToast('Directory sync failed', 'error');
+                if (e.message !== 'Session expired' && !silent) showToast('Directory sync failed', 'error');
             }
         }
 
@@ -979,12 +1001,12 @@
             });
         }
 
-        async function loadProtocols() {
+        async function loadProtocols(silent = false) {
             try {
                 const data = await api('GET', '/api/protocols');
                 renderProtocols(data, 'protocols-full-grid');
             } catch (e) {
-                if (e.message !== 'Session expired') showToast('Failed to fetch services', 'error');
+                if (e.message !== 'Session expired' && !silent) showToast('Failed to fetch services', 'error');
             }
         }
 
