@@ -891,7 +891,7 @@
                     <td class="mono" style="font-weight:700;">${escapeHtml(u.username)}</td>
                     <td>
                         <span class="mono" id="pwd-${u.username}">••••••••</span>
-                        <button class="btn-icon" style="width:24px; height:24px; font-size:0.7rem;" onclick="togglePwdVisibility('${u.username}', '${escapeHtml(u.password)}')">👁️</button>
+                        <button class="btn-icon" style="width:24px; height:24px; font-size:0.7rem;" onclick="togglePwdVisibility('pwd-${u.username}', '${escapeHtml(u.password)}')">👁️</button>
                     </td>
                     <td>${u.expire_date}</td>
                     <td><span style="color:${u.online_sessions > 0 ? 'var(--success)' : 'inherit'}; font-weight:700;">${u.online_sessions}</span> / ${u.conn_limit}</td>
