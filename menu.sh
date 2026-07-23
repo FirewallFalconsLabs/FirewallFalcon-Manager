@@ -667,7 +667,7 @@ setup_limiter_service() {
     # Combined limiter + bandwidth monitoring
     cat > "$LIMITER_SCRIPT" << 'EOF'
 #!/bin/bash
-# FirewallFalcon limiter version 2026-07-23.1
+# FirewallFalcon limiter version 2026-07-23.2
 DB_FILE="/etc/firewallfalcon/users.db"
 BW_DIR="/etc/firewallfalcon/bandwidth"
 PID_DIR="$BW_DIR/pidtrack"
@@ -749,13 +749,16 @@ while true; do
         [[ -n "$username" && "$uid" =~ ^[0-9]+$ ]] && uid_to_user["$uid"]="$username"
     done < /etc/passwd
 
-    # Method 1: process owner from ps
+    # Method 1: process owner from ps (primary source for connection counting)
+    # sshd-session is the user-owned process on Ubuntu 24.04+ (OpenSSH 9.8+)
+    # On Ubuntu 22, the per-session sshd is user-owned instead.
+    # Either way, exactly 1 user-owned process exists per SSH session.
     while read -r ssh_pid ssh_owner; do
         [[ "$ssh_pid" =~ ^[0-9]+$ ]] || continue
         if [[ -n "$ssh_owner" && "$ssh_owner" != "root" && "$ssh_owner" != "sshd" ]]; then
             session_pids["$ssh_owner"]+="$ssh_pid "
         fi
-    done < <(ps -C sshd -o pid=,user= 2>/dev/null)
+    done < <(ps -C sshd,sshd-session -o pid=,user= 2>/dev/null)
 
     # Method 2: kernel loginuid (reliable even when sshd runs as root)
     for p in /proc/[0-9]*/loginuid; do
@@ -810,8 +813,9 @@ while true; do
         unset unique_pids
         declare -A unique_pids=()
 
-        # Merge BOTH sources (union) for reliable counting
-        for pid in ${session_pids[$user]} ${loginuid_pids[$user]}; do
+        # Use ONLY ps-based session_pids for connection counting.
+        # loginuid_pids can double-count (root-owned sshd has user's loginuid on Ubuntu 24)
+        for pid in ${session_pids[$user]}; do
             [[ "$pid" =~ ^[0-9]+$ ]] && unique_pids["$pid"]=1
         done
 
@@ -1052,7 +1056,7 @@ EOF
 }
 
 sync_runtime_components_if_needed() {
-    local limiter_marker="# FirewallFalcon limiter version 2026-07-23.1"
+    local limiter_marker="# FirewallFalcon limiter version 2026-07-23.2"
     cleanup_legacy_bandwidth_runtime
     setup_trial_cleanup_script >/dev/null 2>&1
     if [[ ! -f "$LIMITER_SCRIPT" ]] || ! grep -Fqx "$limiter_marker" "$LIMITER_SCRIPT" 2>/dev/null; then
@@ -4130,8 +4134,9 @@ refresh_ssh_session_cache() {
         unset unique_pids
         local -A unique_pids=()
 
-        # Merge BOTH sources (union) — not fallback
-        for pid in ${session_pids[$user]} ${loginuid_pids[$user]}; do
+        # Use ONLY ps-based session_pids for accurate counting.
+        # loginuid_pids can double-count (root-owned sshd has user's loginuid on Ubuntu 24)
+        for pid in ${session_pids[$user]}; do
             [[ "$pid" =~ ^[0-9]+$ ]] && unique_pids["$pid"]=1
         done
 
