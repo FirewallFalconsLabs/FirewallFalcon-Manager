@@ -672,7 +672,7 @@ DB_FILE="/etc/firewallfalcon/users.db"
 BW_DIR="/etc/firewallfalcon/bandwidth"
 PID_DIR="$BW_DIR/pidtrack"
 BANNER_DIR="/etc/firewallfalcon/banners"
-SCAN_INTERVAL=15
+SCAN_INTERVAL=10
 CONN_LOCK_DURATION=60
 
 mkdir -p "$BW_DIR" "$PID_DIR"
@@ -692,10 +692,7 @@ write_banner_if_changed() {
     fi
 }
 
-# Strike counter for connection limit (persists across scan cycles)
-# A user must exceed limit for 2 consecutive scans before being locked.
-# This prevents false locks during VPN/SSH app reconnections.
-declare -A conn_strikes=()
+# No more strike counters — excess sessions are killed immediately.
 
 while true; do
     if [[ ! -s "$DB_FILE" ]]; then
@@ -840,22 +837,26 @@ while true; do
 
         [[ "$limit" =~ ^[0-9]+$ ]] || limit=1
         if (( online_count > limit )); then
-            # Increment strike counter — require sustained violations before acting
-            local prev_strikes=${conn_strikes[$user]:-0}
-            conn_strikes["$user"]=$(( prev_strikes + 1 ))
-            if (( conn_strikes[$user] >= 3 )); then
-                # 3+ consecutive violations (45+ seconds) — confirmed abuse
-                if ! $user_locked; then
-                    usermod -L "$user" &>/dev/null
-                    killall -u "$user" -9 &>/dev/null
-                    printf '%s\n' "$current_ts" > "$BW_DIR/${user}.conn_locked"
-                    locked_users["$user"]=1
-                    user_locked=true
-                fi
-            fi
-        else
-            # User is within limits, reset strike counter
-            conn_strikes["$user"]=0
+            # Kill only the EXCESS sessions, keep the oldest ones alive
+            # Sort PIDs ascending (oldest first), then kill everything beyond the limit
+            sorted_pids=()
+            for pid in "${!unique_pids[@]}"; do
+                sorted_pids+=("$pid")
+            done
+            # Sort numerically (lower PID = older process)
+            IFS=$'\n' sorted_pids=($(sort -n <<<"${sorted_pids[*]}")); unset IFS
+
+            kill_count=0
+            for (( i=limit; i<${#sorted_pids[@]}; i++ )); do
+                kill -9 "${sorted_pids[$i]}" &>/dev/null
+                kill_count=$((kill_count + 1))
+            done
+
+            # Remove killed PIDs from unique_pids so bandwidth tracking is correct
+            for (( i=limit; i<${#sorted_pids[@]}; i++ )); do
+                unset unique_pids["${sorted_pids[$i]}"]
+            done
+            online_count=${#unique_pids[@]}
         fi
 
         if $dynamic_banners_enabled; then
@@ -1056,7 +1057,7 @@ EOF
 }
 
 sync_runtime_components_if_needed() {
-    local limiter_marker="# FirewallFalcon limiter version 2026-07-23.5"
+    local limiter_marker="# FirewallFalcon limiter version 2026-07-23.6"
     cleanup_legacy_bandwidth_runtime
     setup_trial_cleanup_script >/dev/null 2>&1
     if [[ ! -f "$LIMITER_SCRIPT" ]] || ! grep -Fqx "$limiter_marker" "$LIMITER_SCRIPT" 2>/dev/null; then
