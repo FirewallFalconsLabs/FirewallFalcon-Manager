@@ -946,7 +946,7 @@
                     <td>${statusBadge}</td>
                     <td style="text-align:right;">
                         <div style="display:inline-flex; gap:0.25rem;">
-                            <button class="btn-icon" style="border:none;" title="Copy" onclick="copyText('${escapeHtml(u.password)}')">📋</button>
+                            <button class="btn-icon" style="border:none;" title="Copy" onclick="copyAccountDetails('${escapeHtml(u.username)}', '${escapeHtml(u.password)}', '${u.expire_date}', ${u.bandwidth_gb}, ${u.daily_bandwidth_gb}, ${u.conn_limit})">📋</button>
                             <button class="btn-icon" style="border:none;" title="Edit" onclick="openEditUserModal('${escapeHtml(u.username)}', ${u.conn_limit}, ${u.bandwidth_gb}, ${u.daily_bandwidth_gb})">✏️</button>
                             <button class="btn-icon" style="border:none;" title="Renew" onclick="renewUser('${escapeHtml(u.username)}')">🔄</button>
                             ${u.is_locked ? 
@@ -988,7 +988,7 @@
                         </div>
                     </div>
                     <div class="user-card-actions">
-                        <button class="btn btn-secondary" onclick="copyText('${escapeHtml(u.password)}')">Copy</button>
+                        <button class="btn btn-secondary" onclick="copyAccountDetails('${escapeHtml(u.username)}', '${escapeHtml(u.password)}', '${u.expire_date}', ${u.bandwidth_gb}, ${u.daily_bandwidth_gb}, ${u.conn_limit})">Copy</button>
                         <button class="btn btn-secondary" onclick="openEditUserModal('${escapeHtml(u.username)}', ${u.conn_limit}, ${u.bandwidth_gb}, ${u.daily_bandwidth_gb})">Edit</button>
                         ${u.is_locked ? 
                             `<button class="btn btn-secondary" onclick="toggleLock('${escapeHtml(u.username)}', false)">Unlock</button>` : 
@@ -1231,6 +1231,17 @@
                 }
                 document.body.removeChild(textArea);
             }
+        }
+
+        function copyAccountDetails(user, pass, exp, bw, dbw, conn) {
+            let details = `👤 Username: ${user}\n🔑 Password: ${pass}\n📅 Expiry: ${exp}\n🔌 Devices: ${conn}\n`;
+            if (bw > 0 || dbw > 0) {
+                details += `📊 Data Limit: `;
+                if (bw > 0) details += `${bw} GB (Total) `;
+                if (dbw > 0) details += `${dbw} GB (Daily)`;
+                details += `\n`;
+            }
+            copyText(details);
         }
 
         function formatBytes(bytes) {
