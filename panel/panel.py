@@ -126,7 +126,7 @@ def get_online_sessions(target_user=None):
 
             with open(comm_path, "r") as f:
                 comm = f.read().strip()
-            if comm != "sshd":
+            if comm not in ("sshd", "sshd-session"):
                 continue
                 
             with open(stat_path, "r") as f:

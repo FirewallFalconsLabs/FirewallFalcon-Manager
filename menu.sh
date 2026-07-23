@@ -667,7 +667,7 @@ setup_limiter_service() {
     # Combined limiter + bandwidth monitoring
     cat > "$LIMITER_SCRIPT" << 'EOF'
 #!/bin/bash
-# FirewallFalcon limiter version 2026-07-22.1
+# FirewallFalcon limiter version 2026-07-23.1
 DB_FILE="/etc/firewallfalcon/users.db"
 BW_DIR="/etc/firewallfalcon/bandwidth"
 PID_DIR="$BW_DIR/pidtrack"
@@ -691,6 +691,11 @@ write_banner_if_changed() {
         rm -f "$tmp_file"
     fi
 }
+
+# Strike counter for connection limit (persists across scan cycles)
+# A user must exceed limit for 2 consecutive scans before being locked.
+# This prevents false locks during VPN/SSH app reconnections.
+declare -A conn_strikes=()
 
 while true; do
     if [[ ! -s "$DB_FILE" ]]; then
@@ -831,15 +836,24 @@ while true; do
 
         [[ "$limit" =~ ^[0-9]+$ ]] || limit=1
         if (( online_count > limit )); then
-            if ! $user_locked; then
-                usermod -L "$user" &>/dev/null
-                killall -u "$user" -9 &>/dev/null
-                printf '%s\n' "$current_ts" > "$BW_DIR/${user}.conn_locked"
-                locked_users["$user"]=1
-                user_locked=true
-            else
-                killall -u "$user" -9 &>/dev/null
+            # Increment strike counter instead of locking immediately
+            local prev_strikes=${conn_strikes[$user]:-0}
+            conn_strikes["$user"]=$(( prev_strikes + 1 ))
+            if (( conn_strikes[$user] >= 2 )); then
+                # 2+ consecutive violations — real abuse, lock now
+                if ! $user_locked; then
+                    usermod -L "$user" &>/dev/null
+                    killall -u "$user" -9 &>/dev/null
+                    printf '%s\n' "$current_ts" > "$BW_DIR/${user}.conn_locked"
+                    locked_users["$user"]=1
+                    user_locked=true
+                else
+                    killall -u "$user" -9 &>/dev/null
+                fi
             fi
+        else
+            # User is within limits, reset strike counter
+            conn_strikes["$user"]=0
         fi
 
         if $dynamic_banners_enabled; then
@@ -1038,7 +1052,7 @@ EOF
 }
 
 sync_runtime_components_if_needed() {
-    local limiter_marker="# FirewallFalcon limiter version 2026-07-22.1"
+    local limiter_marker="# FirewallFalcon limiter version 2026-07-23.1"
     cleanup_legacy_bandwidth_runtime
     setup_trial_cleanup_script >/dev/null 2>&1
     if [[ ! -f "$LIMITER_SCRIPT" ]] || ! grep -Fqx "$limiter_marker" "$LIMITER_SCRIPT" 2>/dev/null; then

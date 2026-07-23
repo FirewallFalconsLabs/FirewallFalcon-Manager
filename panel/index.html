@@ -4,1476 +4,1238 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FirewallFalcon Panel</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦅</text></svg>">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦅</text></svg>">
     <style>
         :root {
-            --bg-gradient: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1225 100%);
-            --glass-bg: rgba(255, 255, 255, 0.03);
-            --glass-border: rgba(255, 255, 255, 0.06);
-            --glass-blur: blur(12px);
-            --primary: #00d4ff;
-            --secondary: #7c3aed;
-            --success: #22c55e;
+            --bg-primary: #0b0f1a;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.8);
+            --bg-card-hover: rgba(17, 24, 39, 0.95);
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-hover: rgba(0, 212, 255, 0.3);
+            --accent: #00d4ff;
+            --accent-glow: rgba(0, 212, 255, 0.15);
+            --accent-secondary: #7c3aed;
+            --success: #10b981;
             --danger: #ef4444;
-            --warning: #eab308;
-            --text-primary: #e2e8f0;
+            --warning: #f59e0b;
+            --text-primary: #f1f5f9;
             --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --font-family: 'Inter', sans-serif;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --text-muted: #475569;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            outline: none;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
         body {
-            font-family: var(--font-family);
-            background: var(--bg-gradient);
-            background-attachment: fixed;
+            background-color: var(--bg-primary);
             color: var(--text-primary);
-            min-height: 100vh;
             overflow-x: hidden;
-            line-height: 1.5;
+            min-height: 100vh;
         }
 
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+        /* Background Animation */
+        .bg-mesh {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 15% 50%, rgba(0, 212, 255, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(124, 58, 237, 0.05) 0%, transparent 50%);
+            animation: meshFlow 15s ease-in-out infinite alternate;
         }
-        ::-webkit-scrollbar-track {
-            background: rgba(0,0,0,0.2);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.1);
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary);
+        @keyframes meshFlow {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(1.1); opacity: 1; }
         }
 
         /* Typography */
-        h1, h2, h3, h4, h5, h6 {
-            font-weight: 600;
-            line-height: 1.2;
-            margin-bottom: 1rem;
-        }
-
-        .text-gradient {
-            background: linear-gradient(to right, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
-        .text-sm { font-size: 0.875rem; }
-        .text-xs { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+        h1 { font-size: 1.75rem; font-weight: 700; color: var(--text-primary); }
+        h2 { font-size: 1.25rem; font-weight: 600; }
+        h3 { font-size: 1rem; font-weight: 600; color: var(--text-primary); }
+        p { font-size: 0.875rem; font-weight: 400; color: var(--text-secondary); }
+        .label { font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
         .text-muted { color: var(--text-muted); }
-
-        /* Components */
-        .glass-card {
-            background: var(--glass-bg);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 1.5rem;
-            transition: var(--transition);
-        }
-        .glass-card:hover {
-            box-shadow: 0 0 30px rgba(0, 212, 255, 0.1);
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: var(--transition);
-            border: none;
-            font-family: var(--font-family);
-            font-size: 0.9rem;
-        }
-
-        .btn:active { transform: scale(0.98) !important; }
         
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
-        }
-        .btn-primary:hover {
-            transform: scale(1.02);
-            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--glass-border);
-            color: var(--text-primary);
-        }
-        .btn-outline:hover {
-            background: rgba(255,255,255,0.05);
-            border-color: rgba(255,255,255,0.2);
-        }
-
-        .btn-icon {
-            padding: 0.5rem;
-            border-radius: 6px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid transparent;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .btn-icon:hover {
-            background: rgba(255,255,255,0.1);
-            color: var(--text-primary);
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-            position: relative;
-        }
-        .form-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-        .form-control {
-            width: 100%;
-            background: rgba(0,0,0,0.2);
-            border: 1px solid var(--glass-border);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            color: var(--text-primary);
-            font-family: var(--font-family);
-            transition: var(--transition);
-        }
-        .form-control:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
-        }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.375rem;
-            padding: 0.25rem 0.625rem;
-            border-radius: 999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-        .badge-success { background: rgba(34, 197, 94, 0.1); color: var(--success); border: 1px solid rgba(34, 197, 94, 0.2); }
-        .badge-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
-        .badge-warning { background: rgba(234, 179, 8, 0.1); color: var(--warning); border: 1px solid rgba(234, 179, 8, 0.2); }
-        .badge-info { background: rgba(0, 212, 255, 0.1); color: var(--primary); border: 1px solid rgba(0, 212, 255, 0.2); }
-        .badge-muted { background: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid rgba(255, 255, 255, 0.1); }
-
-        .pulse-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: currentColor;
-            box-shadow: 0 0 0 0 rgba(currentColor, 0.7);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        .gradient-text {
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         /* Animations */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .fade-in-up { animation: fadeInUp 0.5s ease forwards; }
-
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        
+        @keyframes pulseDot {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+        }
+        .status-dot.online { background-color: var(--success); animation: pulseDot 2s infinite; }
+        .status-dot.offline { background-color: var(--danger); }
+        
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-            20%, 40%, 60%, 80% { transform: translateX(5px); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
         }
-        .shake { animation: shake 0.5s ease; }
+        .shake { animation: shake 0.4s ease-in-out; }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255,255,255,0.1);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        /* Layout */
-        #app {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Login View */
-        #login-view {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-        
-        .grid-bg {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-image: 
-                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 30px 30px;
-            z-index: -1;
-            mask-image: radial-gradient(circle at center, black, transparent 80%);
-            -webkit-mask-image: radial-gradient(circle at center, black, transparent 80%);
-        }
-
-        .login-card {
-            width: 100%;
-            max-width: 400px;
-            padding: 2.5rem;
-            text-align: center;
-        }
-        .login-logo {
-            font-size: 2rem;
-            margin-bottom: 2rem;
-            font-weight: 700;
-        }
-        
-        .floating-label { position: relative; margin-bottom: 1.5rem; }
-        .floating-label input {
-            width: 100%;
-            background: rgba(0,0,0,0.2);
-            border: 1px solid var(--glass-border);
-            border-radius: 8px;
-            padding: 1rem;
-            color: var(--text-primary);
-            font-family: var(--font-family);
-            font-size: 1rem;
-            transition: var(--transition);
-        }
-        .floating-label label {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-secondary);
-            transition: var(--transition);
-            pointer-events: none;
-            background: var(--bg-gradient);
-            padding: 0 0.25rem;
-        }
-        .floating-label input:focus { border-color: var(--primary); }
-        .floating-label input:focus + label,
-        .floating-label input:not(:placeholder-shown) + label {
-            top: 0;
-            font-size: 0.75rem;
-            color: var(--primary);
-        }
-        .login-error { color: var(--danger); font-size: 0.875rem; margin-top: 1rem; min-height: 20px; }
-
-        /* Main View */
-        #main-view {
-            display: flex;
-            width: 100%;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            width: 260px;
-            background: rgba(10, 14, 39, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-right: 1px solid var(--glass-border);
-            display: flex;
-            flex-direction: column;
-            transition: var(--transition);
-            z-index: 50;
-        }
-
-        .sidebar-header {
-            padding: 1.5rem;
-            font-size: 1.25rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .nav-items {
-            flex: 1;
-            padding: 1.5rem 0;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .nav-item {
-            padding: 0.75rem 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            color: var(--text-secondary);
-            text-decoration: none;
-            cursor: pointer;
-            transition: var(--transition);
-            border-left: 3px solid transparent;
-        }
-
-        .nav-item:hover {
-            color: var(--text-primary);
-            background: rgba(255,255,255,0.03);
-        }
-
-        .nav-item.active {
-            color: var(--primary);
-            background: linear-gradient(90deg, rgba(0,212,255,0.1) 0%, transparent 100%);
-            border-left-color: var(--primary);
-        }
-
-        .sidebar-footer {
-            padding: 1.5rem;
-            border-top: 1px solid var(--glass-border);
-        }
-
-        /* Main Content Area */
-        .content-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .topbar {
-            height: 70px;
-            padding: 0 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--glass-border);
-            background: rgba(10, 14, 39, 0.5);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        .mobile-toggle { display: none; background: transparent; border: none; color: var(--text-primary); font-size: 1.5rem; cursor: pointer; }
-
-        .main-content {
-            flex: 1;
-            padding: 2rem;
-            overflow-y: auto;
-        }
-
-        /* Page specific */
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-
-        .view-section { display: none; }
-        .view-section.active { display: block; }
-
-        /* Dashboard Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-
-        .stat-icon.purple { background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(124, 58, 237, 0.05)); border: 1px solid rgba(124, 58, 237, 0.3); }
-        .stat-icon.green { background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.05)); border: 1px solid rgba(34, 197, 94, 0.3); }
-        .stat-icon.blue { background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 212, 255, 0.05)); border: 1px solid rgba(0, 212, 255, 0.3); }
-        .stat-icon.orange { background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(234, 179, 8, 0.05)); border: 1px solid rgba(234, 179, 8, 0.3); }
-
-        .stat-info h3 { margin-bottom: 0.25rem; font-size: 1.75rem; font-weight: 700; }
-        .stat-info p { color: var(--text-secondary); font-size: 0.875rem; margin: 0; }
-
-        /* Circular Progress */
-        .circular-progress {
-            position: relative;
-            width: 60px;
-            height: 60px;
-        }
-        .circular-progress svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-        .circular-progress circle {
-            fill: none;
-            stroke-width: 4;
-            stroke-linecap: round;
-        }
-        .circular-progress circle.bg { stroke: rgba(255,255,255,0.1); }
-        .circular-progress circle.progress {
-            stroke: var(--primary);
-            stroke-dasharray: 176;
-            stroke-dashoffset: 176; /* 0% */
-            transition: stroke-dashoffset 1s ease;
-        }
-        .circular-value {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        /* Tables */
-        .table-container {
-            width: 100%;
-            overflow-x: auto;
-            border-radius: 12px;
-            border: 1px solid var(--glass-border);
-            background: var(--glass-bg);
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-        }
-        th, td {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--glass-border);
-        }
-        th {
-            background: rgba(255,255,255,0.02);
-            font-weight: 600;
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-            white-space: nowrap;
-        }
-        tbody tr { transition: var(--transition); }
-        tbody tr:hover { background: rgba(255,255,255,0.03); }
-        tbody tr:last-child td { border-bottom: none; }
-
-        .actions-flex { display: flex; gap: 0.5rem; }
-
-        /* Protocol Grid */
-        .protocol-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
-        }
-        .protocol-card {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .protocol-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .protocol-title {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-
-        /* Modals */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: var(--transition);
-        }
-        .modal-overlay.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-        .modal-content {
-            width: 100%;
-            max-width: 500px;
-            background: var(--bg-gradient);
-            border: 1px solid var(--glass-border);
+        /* UI Elements */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
             border-radius: 16px;
-            padding: 2rem;
-            transform: scale(0.9);
-            transition: var(--transition);
-            position: relative;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            backdrop-filter: blur(20px);
+            padding: 1.5rem;
+            transition: all 0.3s ease;
         }
-        .modal-overlay.active .modal-content {
-            transform: scale(1);
+        .card:hover {
+            border-color: var(--border-hover);
+            box-shadow: 0 0 40px var(--accent-glow);
+            background: var(--bg-card-hover);
         }
-        .modal-close {
-            position: absolute;
-            top: 1.5rem;
-            right: 1.5rem;
-            background: none;
+
+        .btn {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .btn:hover { border-color: var(--text-muted); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            border: none;
+            color: #fff;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.3);
+            transform: translateY(-1px);
+        }
+        .btn-danger { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05); }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.1); border-color: var(--danger); }
+        
+        .btn-icon {
+            padding: 0.5rem;
+            border-radius: 8px;
+            background: transparent;
             border: none;
             color: var(--text-secondary);
-            font-size: 1.5rem;
-            cursor: pointer;
         }
-        .modal-close:hover { color: var(--text-primary); }
-        .modal-actions {
+        .btn-icon:hover { background: var(--bg-secondary); color: var(--text-primary); }
+
+        .input-group {
+            margin-bottom: 1rem;
             display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
-            margin-top: 2rem;
+            flex-direction: column;
+            gap: 0.5rem;
         }
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-wrapper .prefix {
+            position: absolute; left: 1rem; color: var(--text-muted);
+        }
+        .input-wrapper .suffix {
+            position: absolute; right: 0.5rem;
+        }
+        input, select {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+        .input-wrapper input { padding-left: 2.5rem; }
+        input:focus, select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+        
+        .badge {
+            display: inline-flex; align-items: center; gap: 0.375rem;
+            padding: 0.25rem 0.6rem; border-radius: 9999px;
+            font-size: 0.75rem; font-weight: 500;
+        }
+        .badge-green { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
+        .badge-red { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+        .badge-gray { background: rgba(71, 85, 105, 0.1); color: var(--text-secondary); border: 1px solid rgba(71, 85, 105, 0.2); }
+        .badge-yellow { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+
+        .progress-bar { width: 100%; height: 4px; background: var(--bg-secondary); border-radius: 2px; overflow: hidden; margin-top: 0.5rem; }
+        .progress-fill { height: 100%; background: var(--accent); transition: width 0.3s ease; }
+
+        /* Login Screen */
+        #login-view {
+            display: flex; align-items: center; justify-content: center; min-height: 100vh;
+            padding: 1rem;
+        }
+        .login-card {
+            width: 100%; max-width: 420px; text-align: center;
+        }
+        .login-logo { font-size: 3rem; margin-bottom: 0.5rem; line-height: 1; }
+        #login-error { color: var(--danger); font-size: 0.875rem; margin-top: 1rem; min-height: 1.25rem; }
+
+        /* Main Layout */
+        #app-view { display: flex; min-height: 100vh; }
+        .sidebar {
+            width: 250px; background: rgba(11, 15, 26, 0.95);
+            border-right: 1px solid var(--border-subtle);
+            display: flex; flex-direction: column;
+            position: fixed; top: 0; bottom: 0; left: 0;
+            z-index: 40; backdrop-filter: blur(20px);
+            transition: transform 0.3s ease;
+        }
+        .sidebar-header { padding: 1.5rem; display: flex; align-items: center; gap: 0.75rem; }
+        .sidebar-nav { flex: 1; padding: 1rem; display: flex; flex-direction: column; gap: 0.25rem; }
+        .nav-item {
+            display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem;
+            color: var(--text-secondary); text-decoration: none; border-radius: 10px;
+            transition: all 0.2s ease; cursor: pointer; border-left: 3px solid transparent;
+        }
+        .nav-item:hover { background: var(--bg-secondary); color: var(--text-primary); }
+        .nav-item.active {
+            background: var(--accent-glow); color: var(--text-primary);
+            border-left-color: var(--accent);
+        }
+        .sidebar-footer { padding: 1rem; border-top: 1px solid var(--border-subtle); }
+        
+        .main-content {
+            flex: 1; margin-left: 250px; padding: 2rem; max-width: 1400px;
+        }
+        .mobile-header {
+            display: none; padding: 1rem; border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-primary); position: sticky; top: 0; z-index: 30;
+            align-items: center; justify-content: space-between;
+        }
+
+        /* Views */
+        .page-view { display: none; }
+        .page-view.active { display: block; }
+        .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+
+        /* Dashboard Grid */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+        .stat-card {
+            position: relative; overflow: hidden;
+        }
+        .stat-card::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+            background: var(--accent);
+        }
+        .stat-card[data-type="users"]::before { background: var(--accent); }
+        .stat-card[data-type="online"]::before { background: var(--success); }
+        .stat-card[data-type="ram"]::before { background: var(--warning); }
+        .stat-card[data-type="cpu"]::before { background: var(--accent-secondary); }
+        .stat-value { font-size: 2rem; font-weight: 700; color: var(--text-primary); margin: 0.5rem 0; }
+        
+        .server-strip {
+            display: flex; gap: 2rem; padding: 1rem 1.5rem; margin-bottom: 2rem; flex-wrap: wrap;
+            background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; backdrop-filter: blur(20px);
+        }
+        .server-strip-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: var(--text-secondary); }
+
+        .protocol-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .protocol-card { display: flex; flex-direction: column; gap: 1rem; }
+        .protocol-header { display: flex; justify-content: space-between; align-items: center; }
+        
+        /* Table */
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { padding: 1rem; border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+        td { padding: 1rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.875rem; white-space: nowrap; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: rgba(255, 255, 255, 0.02); }
+        
+        .td-actions { display: flex; gap: 0.25rem; }
+        .pwd-cell { display: flex; align-items: center; gap: 0.5rem; font-family: monospace; }
+        
+        /* Modals */
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .modal-backdrop.active { opacity: 1; pointer-events: auto; }
+        .modal {
+            width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;
+            transform: translateY(20px); transition: transform 0.3s ease;
+            margin: 1rem;
+        }
+        .modal-backdrop.active .modal { transform: translateY(0); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; }
 
         /* Toasts */
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 200;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        #toast-container {
+            position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999;
+            display: flex; flex-direction: column; gap: 0.75rem; pointer-events: none;
         }
         .toast {
-            min-width: 300px;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            background: rgba(10, 14, 39, 0.95);
-            backdrop-filter: blur(10px);
-            border-left: 4px solid var(--primary);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            transform: translateX(120%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px;
+            padding: 1rem 1.25rem; backdrop-filter: blur(20px); box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex; align-items: center; gap: 0.75rem; pointer-events: auto;
+            transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .toast.show { transform: translateX(0); }
-        .toast.success { border-color: var(--success); }
-        .toast.error { border-color: var(--danger); }
-        
-        .password-input-wrap { position: relative; display: flex; align-items: center; }
-        .password-input-wrap input { padding-right: 2.5rem; }
-        .toggle-password {
-            position: absolute;
-            right: 10px;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-        }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--accent); }
 
-        .input-group { display: flex; gap: 0.5rem; }
-        .input-group input { flex: 1; }
+        /* Utilities */
+        .hidden { display: none !important; }
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         /* Responsive */
-        @media (max-width: 1024px) {
-            .sidebar { width: 80px; }
-            .sidebar-header span { display: none; }
-            .nav-item span { display: none; }
-            .nav-item { justify-content: center; padding: 1rem; }
-        }
         @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                left: -260px;
-                width: 260px;
-                height: 100vh;
-            }
-            .sidebar.mobile-open { left: 0; }
-            .mobile-toggle { display: block; }
-            .sidebar-header span, .nav-item span { display: inline; }
-            .nav-item { justify-content: flex-start; }
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: 1rem; }
+            .mobile-header { display: flex; }
+            .page-header { flex-direction: column; align-items: flex-start; }
             .stats-grid { grid-template-columns: 1fr; }
         }
-        
-        /* Utils */
-        .flex-between { display: flex; justify-content: space-between; align-items: center; }
-        .gap-2 { gap: 0.5rem; }
-        .gap-4 { gap: 1rem; }
     </style>
 </head>
 <body>
+    <div class="bg-mesh"></div>
+    <div id="toast-container"></div>
 
-    <!-- APP WRAPPER -->
-    <div id="app">
-        
-        <!-- LOGIN VIEW -->
-        <div id="login-view">
-            <div class="grid-bg"></div>
-            <div class="glass-card login-card fade-in-up">
-                <div class="login-logo text-gradient">🦅 FirewallFalcon</div>
-                <form id="login-form">
-                    <div class="floating-label">
-                        <input type="text" id="login-username" placeholder=" " required autocomplete="username">
-                        <label for="login-username">Username</label>
-                    </div>
-                    <div class="floating-label">
-                        <input type="password" id="login-password" placeholder=" " required autocomplete="current-password">
-                        <label for="login-password">Password</label>
-                    </div>
-                    <button type="submit" class="btn btn-primary" style="width: 100%;">
-                        <span>Sign In</span>
-                    </button>
-                    <div id="login-error" class="login-error"></div>
-                </form>
-            </div>
-        </div>
-
-        <!-- MAIN VIEW -->
-        <div id="main-view" style="display: none;">
+    <!-- LOGIN VIEW -->
+    <div id="login-view" class="view hidden">
+        <div class="card login-card animate-fade-in">
+            <div class="login-logo">🦅</div>
+            <h1 class="gradient-text">FirewallFalcon</h1>
+            <p class="text-muted" style="margin-bottom: 2rem;">Control Panel</p>
             
-            <!-- SIDEBAR -->
-            <aside class="sidebar" id="sidebar">
-                <div class="sidebar-header">
-                    🦅 <span class="text-gradient">Falcon</span>
+            <form id="login-form">
+                <div class="input-group">
+                    <div class="input-wrapper">
+                        <span class="prefix">👤</span>
+                        <input type="text" id="login-user" placeholder="Username" required>
+                    </div>
                 </div>
-                <div class="nav-items">
-                    <a class="nav-item active" data-target="dashboard">
-                        <span>🏠</span> <span>Dashboard</span>
-                    </a>
-                    <a class="nav-item" data-target="users">
-                        <span>👤</span> <span>Users</span>
-                    </a>
-                    <a class="nav-item" data-target="protocols">
-                        <span>📡</span> <span>Protocols</span>
-                    </a>
-                    <a class="nav-item" data-target="settings">
-                        <span>⚙️</span> <span>Settings</span>
-                    </a>
+                <div class="input-group">
+                    <div class="input-wrapper">
+                        <span class="prefix">🔑</span>
+                        <input type="password" id="login-pass" placeholder="Password" required>
+                    </div>
                 </div>
-                <div class="sidebar-footer">
-                    <button class="btn btn-outline" id="btn-logout" style="width: 100%;">🚪 <span>Logout</span></button>
-                </div>
-            </aside>
-
-            <!-- CONTENT AREA -->
-            <main class="content-area">
-                
-                <!-- TOPBAR -->
-                <header class="topbar">
-                    <button class="mobile-toggle" id="mobile-toggle">☰</button>
-                    <div class="text-sm text-muted" id="last-updated">Last updated: just now</div>
-                </header>
-
-                <div class="main-content">
-                    
-                    <!-- DASHBOARD VIEW -->
-                    <section id="view-dashboard" class="view-section active fade-in-up">
-                        <div class="page-header">
-                            <h2>Dashboard</h2>
-                        </div>
-                        
-                        <div class="stats-grid">
-                            <div class="glass-card stat-card">
-                                <div class="stat-icon purple">👥</div>
-                                <div class="stat-info">
-                                    <h3 id="stat-total-users">0</h3>
-                                    <p>Total Users</p>
-                                </div>
-                            </div>
-                            <div class="glass-card stat-card">
-                                <div class="stat-icon green">🟢</div>
-                                <div class="stat-info">
-                                    <h3 id="stat-online-sessions">0</h3>
-                                    <p>Online Sessions</p>
-                                </div>
-                            </div>
-                            <div class="glass-card stat-card">
-                                <div class="stat-icon blue">
-                                    <div class="circular-progress">
-                                        <svg>
-                                            <circle class="bg" cx="30" cy="30" r="28"></circle>
-                                            <circle class="progress" cx="30" cy="30" r="28" id="ram-progress"></circle>
-                                        </svg>
-                                        <div class="circular-value" id="ram-val">0%</div>
-                                    </div>
-                                </div>
-                                <div class="stat-info">
-                                    <h3>RAM Usage</h3>
-                                    <p>Server Memory</p>
-                                </div>
-                            </div>
-                            <div class="glass-card stat-card">
-                                <div class="stat-icon orange">⚡</div>
-                                <div class="stat-info">
-                                    <h3 id="stat-cpu-load">0%</h3>
-                                    <p>CPU Load</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="glass-card mb-4" style="margin-bottom: 2rem;">
-                            <h3>Server Info</h3>
-                            <div class="flex-between" style="margin-top: 1rem; flex-wrap: wrap; gap: 1rem;">
-                                <div><span class="text-xs text-muted">IP ADDRESS</span><br><strong id="srv-ip">Loading...</strong></div>
-                                <div><span class="text-xs text-muted">OS</span><br><strong id="srv-os">Loading...</strong></div>
-                                <div><span class="text-xs text-muted">UPTIME</span><br><strong id="srv-uptime">Loading...</strong></div>
-                            </div>
-                        </div>
-
-                        <h3>Quick Protocols Status</h3>
-                        <div class="protocol-grid" id="dashboard-protocols-grid" style="margin-top: 1rem;">
-                            <!-- Populated by JS -->
-                        </div>
-                    </section>
-
-                    <!-- USERS VIEW -->
-                    <section id="view-users" class="view-section fade-in-up">
-                        <div class="page-header" style="flex-wrap: wrap; gap: 1rem;">
-                            <h2>Users Management</h2>
-                            <div class="flex-between gap-4">
-                                <input type="text" id="search-users" class="form-control" placeholder="Search users..." style="width: 200px;">
-                                <button class="btn btn-outline" id="btn-bulk-create">👥 Bulk Create</button>
-                                <button class="btn btn-primary" id="btn-create-user">➕ Create User</button>
-                            </div>
-                        </div>
-                        
-                        <div class="table-container">
-                            <table id="users-table">
-                                <thead>
-                                    <tr>
-                                        <th>Username</th>
-                                        <th>Password</th>
-                                        <th>Expiry</th>
-                                        <th>Sessions</th>
-                                        <th>Bandwidth</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <!-- Populated by JS -->
-                                    <tr><td colspan="7" style="text-align:center;" class="text-muted">Loading users...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
-
-                    <!-- PROTOCOLS VIEW -->
-                    <section id="view-protocols" class="view-section fade-in-up">
-                        <div class="page-header">
-                            <h2>Protocols Configuration</h2>
-                        </div>
-                        
-                        <div class="protocol-grid" id="full-protocols-grid">
-                            <!-- Populated by JS -->
-                        </div>
-                    </section>
-
-                    <!-- SETTINGS VIEW -->
-                    <section id="view-settings" class="view-section fade-in-up">
-                        <div class="page-header">
-                            <h2>Panel Settings</h2>
-                        </div>
-                        
-                        <div class="stats-grid">
-                            <div class="glass-card">
-                                <h3>Update Credentials</h3>
-                                <form id="form-settings-creds" style="margin-top: 1.5rem;">
-                                    <div class="form-group">
-                                        <label class="form-label">Current Username</label>
-                                        <input type="text" id="set-user-current" class="form-control" disabled value="admin">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">New Username</label>
-                                        <input type="text" id="set-user-new" class="form-control" placeholder="Leave blank to keep current">
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Current Password (Required)</label>
-                                        <input type="password" id="set-pass-curr" class="form-control" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">New Password</label>
-                                        <input type="password" id="set-pass-new" class="form-control" placeholder="Leave blank to keep current">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">Update Credentials</button>
-                                </form>
-                            </div>
-                            
-                            <div class="glass-card">
-                                <h3>Panel Information</h3>
-                                <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
-                                    <div><span class="text-xs text-muted">PANEL PORT</span><br><strong>44380</strong></div>
-                                    <div><span class="text-xs text-muted">PANEL URL</span><br><strong id="set-panel-url">http://0.0.0.0:44380</strong></div>
-                                    <div><span class="text-xs text-muted">VERSION</span><br><strong>1.0.0</strong></div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                    
-                </div>
-            </main>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;">
+                    Sign In
+                </button>
+                <div id="login-error"></div>
+            </form>
         </div>
+    </div>
+
+    <!-- APP VIEW -->
+    <div id="app-view" class="view hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span style="font-size: 1.5rem;">🦅</span>
+                <h2 class="gradient-text" style="font-size: 1.1rem;">FirewallFalcon</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <a class="nav-item active" data-target="dashboard">
+                    <span>📊</span> Dashboard
+                </a>
+                <a class="nav-item" data-target="users">
+                    <span>👥</span> Users
+                </a>
+                <a class="nav-item" data-target="protocols">
+                    <span>📡</span> Protocols
+                </a>
+                <a class="nav-item" data-target="settings">
+                    <span>⚙️</span> Settings
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="btn-logout" class="btn btn-danger" style="width: 100%;">
+                    <span>🚪</span> Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="mobile-header">
+                <h2 class="gradient-text">FirewallFalcon</h2>
+                <button class="btn-icon" id="btn-menu">☰</button>
+            </div>
+
+            <!-- Dashboard Page -->
+            <div id="page-dashboard" class="page-view active animate-fade-in">
+                <div class="page-header">
+                    <div>
+                        <h1>Dashboard</h1>
+                        <p>Overview of your server and protocols</p>
+                    </div>
+                    <p class="text-muted" id="dash-updated" style="font-size: 0.75rem;"></p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="card stat-card" data-type="users">
+                        <div class="label">Total Users</div>
+                        <div class="stat-value" id="stat-users">0</div>
+                        <div class="text-muted" style="font-size: 0.875rem;">👥 Registered accounts</div>
+                    </div>
+                    <div class="card stat-card" data-type="online">
+                        <div class="label">Online Now</div>
+                        <div class="stat-value" id="stat-online">0</div>
+                        <div class="text-muted" style="font-size: 0.875rem;"><span class="status-dot online"></span> Active sessions</div>
+                    </div>
+                    <div class="card stat-card" data-type="ram" id="card-ram">
+                        <div class="label">RAM Usage</div>
+                        <div class="stat-value" id="stat-ram">0%</div>
+                        <div class="text-muted" style="font-size: 0.875rem;" id="stat-ram-detail">0 MB / 0 MB</div>
+                    </div>
+                    <div class="card stat-card" data-type="cpu">
+                        <div class="label">CPU Load (1m)</div>
+                        <div class="stat-value" id="stat-cpu">0.00</div>
+                        <div class="text-muted" style="font-size: 0.875rem;">🖥️ System load avg</div>
+                    </div>
+                </div>
+
+                <div class="server-strip">
+                    <div class="server-strip-item">🌐 IP: <span id="server-ip" class="text-primary">-</span></div>
+                    <div class="server-strip-item">🖥️ OS: <span id="server-os" class="text-primary">-</span></div>
+                    <div class="server-strip-item">⏱️ Uptime: <span id="server-uptime" class="text-primary">-</span></div>
+                </div>
+
+                <h3>Protocol Status</h3>
+                <div class="protocol-grid" id="dash-protocols" style="margin-top: 1rem;">
+                    <!-- Protocols injected here -->
+                </div>
+            </div>
+
+            <!-- Users Page -->
+            <div id="page-users" class="page-view animate-fade-in">
+                <div class="page-header">
+                    <div>
+                        <h1>Users</h1>
+                        <p>Manage VPN accounts and bandwidth limits</p>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <div class="input-wrapper" style="width: 200px;">
+                            <span class="prefix" style="top: 50%; transform: translateY(-50%);">🔍</span>
+                            <input type="text" id="search-users" placeholder="Search...">
+                        </div>
+                        <button class="btn btn-primary" onclick="openModal('user-modal')"><span>+</span> New User</button>
+                        <button class="btn" onclick="openModal('bulk-modal')">👥 Bulk Create</button>
+                    </div>
+                </div>
+
+                <div class="card table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Password</th>
+                                <th>Expiry</th>
+                                <th>Sessions</th>
+                                <th>Bandwidth</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody">
+                            <!-- Users injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Protocols Page -->
+            <div id="page-protocols" class="page-view animate-fade-in">
+                <div class="page-header">
+                    <div>
+                        <h1>Protocols</h1>
+                        <p>Manage installed VPN services</p>
+                    </div>
+                    <p class="text-muted" id="proto-updated" style="font-size: 0.75rem;"></p>
+                </div>
+                <div class="protocol-grid" id="page-protocol-grid">
+                    <!-- Protocol cards here -->
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="page-settings" class="page-view animate-fade-in">
+                <div class="page-header">
+                    <div>
+                        <h1>Settings</h1>
+                        <p>Panel configuration</p>
+                    </div>
+                </div>
+                <div class="stats-grid">
+                    <div class="card">
+                        <h3>Admin Credentials</h3>
+                        <p style="margin-bottom: 1.5rem; margin-top: 0.5rem;">Update your panel login credentials.</p>
+                        <form id="settings-form">
+                            <div class="input-group">
+                                <label class="label">Current Username</label>
+                                <input type="text" id="set-user" disabled style="background: rgba(255,255,255,0.02);">
+                            </div>
+                            <div class="input-group">
+                                <label class="label">New Username</label>
+                                <input type="text" id="set-new-user" required>
+                            </div>
+                            <div class="input-group">
+                                <label class="label">Current Password</label>
+                                <input type="password" id="set-curr-pass" required>
+                            </div>
+                            <div class="input-group">
+                                <label class="label">New Password</label>
+                                <input type="password" id="set-new-pass" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Update Credentials</button>
+                        </form>
+                    </div>
+                    <div class="card">
+                        <h3>Panel Info</h3>
+                        <p style="margin-bottom: 1.5rem; margin-top: 0.5rem;">System information.</p>
+                        <div class="input-group">
+                            <label class="label">Panel URL</label>
+                            <input type="text" id="info-url" disabled style="background: rgba(255,255,255,0.02);">
+                        </div>
+                        <div class="input-group">
+                            <label class="label">Panel Port</label>
+                            <input type="text" value="44380" disabled style="background: rgba(255,255,255,0.02);">
+                        </div>
+                        <div class="input-group">
+                            <label class="label">Version</label>
+                            <input type="text" value="1.0.0" disabled style="background: rgba(255,255,255,0.02);">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <!-- MODALS -->
     
-    <!-- User Modal (Create/Edit) -->
-    <div class="modal-overlay" id="modal-user">
-        <div class="modal-content">
-            <button class="modal-close" onclick="closeModal('modal-user')">×</button>
-            <h2 id="modal-user-title">Create User</h2>
-            <form id="form-user">
-                <input type="hidden" id="user-mode" value="create">
-                <div class="form-group">
-                    <label class="form-label">Username</label>
-                    <input type="text" id="user-name" class="form-control" required>
+    <!-- Create/Edit User Modal -->
+    <div class="modal-backdrop" id="user-modal">
+        <div class="card modal">
+            <div class="modal-header">
+                <h3 id="user-modal-title">Create User</h3>
+                <button class="btn-icon" onclick="closeModal('user-modal')">✕</button>
+            </div>
+            <form id="user-form">
+                <div class="input-group">
+                    <label class="label">Username</label>
+                    <input type="text" id="u-name" required pattern="[a-zA-Z0-9_-]+">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Password</label>
-                    <div class="input-group">
-                        <input type="text" id="user-pass" class="form-control" required>
-                        <button type="button" class="btn btn-outline" onclick="generatePassword('user-pass')">🎲</button>
+                <div class="input-group">
+                    <label class="label">Password</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="u-pass" required>
+                        <button type="button" class="btn-icon suffix" onclick="document.getElementById('u-pass').value=generatePassword()">🎲</button>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Duration (Days)</label>
-                    <input type="number" id="user-days" class="form-control" value="30" min="0">
+                <div class="input-group">
+                    <label class="label">Duration (Days)</label>
+                    <input type="number" id="u-days" value="30" min="1" required>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Connection Limit</label>
-                    <input type="number" id="user-limit" class="form-control" value="1" min="0">
+                <div class="input-group">
+                    <label class="label">Connection Limit</label>
+                    <input type="number" id="u-conn" value="1" min="0" required>
                 </div>
-                <div class="flex-between gap-4">
-                    <div class="form-group" style="flex:1;">
-                        <label class="form-label">Total Bandwidth (GB)</label>
-                        <input type="number" id="user-bw" class="form-control" value="0" min="0" step="0.1">
-                    </div>
-                    <div class="form-group" style="flex:1;">
-                        <label class="form-label">Daily Bandwidth (GB)</label>
-                        <input type="number" id="user-daily-bw" class="form-control" value="0" min="0" step="0.1">
-                    </div>
+                <div class="input-group">
+                    <label class="label">Total Bandwidth (GB, 0 = unl)</label>
+                    <input type="number" id="u-bw" value="0" min="0" step="0.1" required>
                 </div>
-                <div class="text-xs text-muted" style="margin-top:-10px; margin-bottom:15px;">* 0 means unlimited bandwidth</div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-outline" onclick="closeModal('modal-user')">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="btn-save-user">Create</button>
+                <div class="input-group">
+                    <label class="label">Daily Bandwidth (GB/day, 0 = unl)</label>
+                    <input type="number" id="u-daily-bw" value="0" min="0" step="0.1" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn" onclick="closeModal('user-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-user">Save</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Bulk Create Modal -->
-    <div class="modal-overlay" id="modal-bulk">
-        <div class="modal-content">
-            <button class="modal-close" onclick="closeModal('modal-bulk')">×</button>
-            <h2>Bulk Create Users</h2>
-            <form id="form-bulk">
-                <div class="flex-between gap-4">
-                    <div class="form-group" style="flex:2;">
-                        <label class="form-label">Prefix</label>
-                        <input type="text" id="bulk-prefix" class="form-control" required placeholder="user_">
+    <div class="modal-backdrop" id="bulk-modal">
+        <div class="card modal">
+            <div class="modal-header">
+                <h3>Bulk Create Users</h3>
+                <button class="btn-icon" onclick="closeModal('bulk-modal')">✕</button>
+            </div>
+            <form id="bulk-form">
+                <div class="stats-grid" style="gap: 1rem; margin-bottom: 1rem;">
+                    <div class="input-group">
+                        <label class="label">Prefix</label>
+                        <input type="text" id="b-prefix" value="user" required>
                     </div>
-                    <div class="form-group" style="flex:1;">
-                        <label class="form-label">Count</label>
-                        <input type="number" id="bulk-count" class="form-control" value="10" min="1" max="100">
+                    <div class="input-group">
+                        <label class="label">Count (1-100)</label>
+                        <input type="number" id="b-count" value="10" min="1" max="100" required>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Duration (Days)</label>
-                    <input type="number" id="bulk-days" class="form-control" value="30" min="0">
+                <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.875rem;" id="bulk-preview">Will create: user1, user2 ... user10</p>
+                <div class="stats-grid" style="gap: 1rem;">
+                    <div class="input-group">
+                        <label class="label">Duration (Days)</label>
+                        <input type="number" id="b-days" value="30" min="1" required>
+                    </div>
+                    <div class="input-group">
+                        <label class="label">Connection Limit</label>
+                        <input type="number" id="b-conn" value="1" min="0" required>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Connection Limit</label>
-                    <input type="number" id="bulk-limit" class="form-control" value="1" min="0">
+                <div class="stats-grid" style="gap: 1rem;">
+                    <div class="input-group">
+                        <label class="label">Total BW (GB)</label>
+                        <input type="number" id="b-bw" value="0" min="0" step="0.1" required>
+                    </div>
+                    <div class="input-group">
+                        <label class="label">Daily BW (GB)</label>
+                        <input type="number" id="b-daily" value="0" min="0" step="0.1" required>
+                    </div>
                 </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-outline" onclick="closeModal('modal-bulk')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Generate</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn" onclick="closeModal('bulk-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btn-bulk">Create</button>
                 </div>
             </form>
         </div>
     </div>
-
-    <!-- Delete Confirm Modal -->
-    <div class="modal-overlay" id="modal-delete">
-        <div class="modal-content">
-            <button class="modal-close" onclick="closeModal('modal-delete')">×</button>
-            <h2>Confirm Deletion</h2>
-            <p style="margin: 1.5rem 0;">Are you sure you want to delete user <strong id="del-username" class="text-danger"></strong>? This action cannot be undone.</p>
-            <div class="modal-actions">
-                <button type="button" class="btn btn-outline" onclick="closeModal('modal-delete')">Cancel</button>
-                <button type="button" class="btn btn-primary" style="background: var(--danger); box-shadow: none;" id="btn-confirm-delete">Delete</button>
+    
+    <!-- Bulk Success Modal -->
+    <div class="modal-backdrop" id="bulk-result-modal">
+        <div class="card modal">
+            <div class="modal-header">
+                <h3>Users Created Successfully!</h3>
+                <button class="btn-icon" onclick="closeModal('bulk-result-modal')">✕</button>
+            </div>
+            <div style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem; background: var(--bg-secondary); border-radius: 8px; padding: 1rem;">
+                <table style="width: 100%;">
+                    <thead><tr><th style="padding: 0.5rem;">Username</th><th style="padding: 0.5rem;">Password</th></tr></thead>
+                    <tbody id="bulk-result-tbody"></tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="copyBulkResults()" style="width: 100%;">📋 Copy All</button>
             </div>
         </div>
     </div>
 
     <!-- Renew Modal -->
-    <div class="modal-overlay" id="modal-renew">
-        <div class="modal-content">
-            <button class="modal-close" onclick="closeModal('modal-renew')">×</button>
-            <h2>Renew User</h2>
-            <p class="text-muted" style="margin-bottom: 1rem;">Renewing user: <strong id="renew-username" class="text-primary"></strong></p>
-            <form id="form-renew">
-                <div class="form-group">
-                    <label class="form-label">Add Days</label>
-                    <input type="number" id="renew-days" class="form-control" value="30" min="1" required>
+    <div class="modal-backdrop" id="renew-modal">
+        <div class="card modal" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 id="renew-title">Renew User</h3>
+                <button class="btn-icon" onclick="closeModal('renew-modal')">✕</button>
+            </div>
+            <form id="renew-form">
+                <input type="hidden" id="r-uname">
+                <p class="text-muted" style="margin-bottom: 1rem;">Current Expiry: <span id="r-curr-exp" style="color: var(--text-primary);"></span></p>
+                <div class="input-group">
+                    <label class="label">Add Days</label>
+                    <input type="number" id="r-days" value="30" min="1" required>
                 </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-outline" onclick="closeModal('modal-renew')">Cancel</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn" onclick="closeModal('renew-modal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Renew</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- TOAST CONTAINER -->
-    <div class="toast-container" id="toast-container"></div>
+    <!-- Delete Modal -->
+    <div class="modal-backdrop" id="delete-modal">
+        <div class="card modal" style="max-width: 400px; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+            <h3>Delete User?</h3>
+            <p class="text-muted" style="margin-top: 0.5rem; margin-bottom: 2rem;">Are you sure you want to delete <strong id="del-uname" style="color: var(--text-primary);"></strong>? This cannot be undone.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button class="btn" onclick="closeModal('delete-modal')">Cancel</button>
+                <button class="btn btn-danger" id="btn-confirm-del">Delete</button>
+            </div>
+        </div>
+    </div>
 
+    <!-- JAVASCRIPT -->
     <script>
-        // --- STATE & CONFIG ---
-        const state = {
-            token: null,
-            loggedIn: false,
-            users: [],
-            protocols: [],
-            dashboardInterval: null,
-            usersInterval: null,
-            lastUpdate: new Date()
-        };
+        // Data State
+        let allUsers = [];
+        let isEditMode = false;
+        let dashInterval, protoInterval;
+        let lastBulkResults = "";
 
-        function renderApp() {
-            if (!state.loggedIn) {
-                document.getElementById('main-view').style.display = 'none';
-                document.getElementById('login-view').style.display = 'flex';
-                clearInterval(state.dashboardInterval);
-                clearInterval(state.usersInterval);
-            }
-        }
-
-
-
-        // --- UTILS ---
+        // Core API Wrapper
         async function api(method, path, body = null) {
             const opts = { method, credentials: 'same-origin', headers: {} };
             if (body) {
                 opts.headers['Content-Type'] = 'application/json';
                 opts.body = JSON.stringify(body);
             }
-            const res = await fetch(path, opts);
-            if (res.status === 401 && path !== '/api/login') {
-                state.loggedIn = false;
-                state.token = null;
-                renderApp();
-                throw new Error('Session expired');
+            try {
+                const res = await fetch(path, opts);
+                if (res.status === 401 && path !== '/api/login') {
+                    showLoginScreen();
+                    throw new Error('Session expired');
+                }
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Request failed');
+                return data;
+            } catch(e) {
+                throw e;
             }
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Request failed');
-            return data;
         }
 
-        function showToast(message, type = 'info') {
+        // Init App
+        async function init() {
+            try {
+                await api('GET', '/api/dashboard');
+                showMainView();
+                switchView('dashboard');
+                document.getElementById('info-url').value = window.location.origin;
+            } catch(e) {
+                showLoginScreen();
+            }
+        }
+        document.addEventListener('DOMContentLoaded', init);
+
+        // View Management
+        function showLoginScreen() {
+            document.getElementById('app-view').classList.add('hidden');
+            document.getElementById('login-view').classList.remove('hidden');
+            clearInterval(dashInterval); clearInterval(protoInterval);
+        }
+        
+        function showMainView() {
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('app-view').classList.remove('hidden');
+            fetchSettings();
+        }
+
+        function switchView(viewName) {
+            document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`page-${viewName}`).classList.add('active');
+            const navItem = document.querySelector(`.nav-item[data-target="${viewName}"]`);
+            if(navItem) navItem.classList.add('active');
+            
+            // Mobile sidebar auto-close
+            if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+
+            // View-specific logic
+            clearInterval(dashInterval); clearInterval(protoInterval);
+            if(viewName === 'dashboard') {
+                loadDashboard();
+                dashInterval = setInterval(loadDashboard, 30000);
+            } else if(viewName === 'users') {
+                loadUsers();
+            } else if(viewName === 'protocols') {
+                loadProtocols();
+                protoInterval = setInterval(loadProtocols, 30000);
+            }
+        }
+
+        document.querySelectorAll('.nav-item').forEach(el => {
+            el.addEventListener('click', () => switchView(el.getAttribute('data-target')));
+        });
+        document.getElementById('btn-menu').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('open');
+        });
+
+        // Helpers
+        function formatBytes(bytes) {
+            if(!bytes) return '0 MB';
+            const gb = bytes / 1073741824;
+            return gb >= 1 ? gb.toFixed(2) + ' GB' : (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        function daysUntil(dateStr) {
+            if(!dateStr) return 0;
+            const ms = new Date(dateStr) - new Date();
+            return Math.ceil(ms / 86400000);
+        }
+
+        function generatePassword(length = 10) {
+            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            return Array.from({length}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+        }
+
+        function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
-            toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+            const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️');
+            toast.innerHTML = `<span>${icon}</span><span style="font-size: 0.875rem; font-weight: 500;">${message}</span>`;
             container.appendChild(toast);
             
-            setTimeout(() => { toast.classList.add('show'); }, 10);
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Copied to clipboard', 'success');
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
             });
         }
 
-        function generatePassword(targetId) {
-            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$';
-            let pass = '';
-            for(let i=0; i<10; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
-            document.getElementById(targetId).value = pass;
+        function togglePassword(btn) {
+            const input = btn.previousElementSibling;
+            if(input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
+            else { input.type = 'password'; btn.textContent = '👁️'; }
         }
 
-        function updateTimeAgo() {
-            const el = document.getElementById('last-updated');
-            const sec = Math.floor((new Date() - state.lastUpdate) / 1000);
-            if (sec < 5) el.textContent = 'Last updated: just now';
-            else el.textContent = `Last updated: ${sec}s ago`;
-        }
-        setInterval(updateTimeAgo, 1000);
-
-        // --- UI NAVIGATION ---
-        function switchView(target) {
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            
-            const view = document.getElementById(`view-${target}`);
-            if(view) view.classList.add('active');
-            
-            const nav = document.querySelector(`.nav-item[data-target="${target}"]`);
-            if(nav) nav.classList.add('active');
-
-            if(window.innerWidth <= 768) {
-                document.getElementById('sidebar').classList.remove('mobile-open');
-            }
-
-            // Clear intervals
-            clearInterval(state.dashboardInterval);
-            clearInterval(state.usersInterval);
-
-            // Load data based on view
-            if(target === 'dashboard') {
-                loadDashboard();
-                state.dashboardInterval = setInterval(loadDashboard, 30000);
-            } else if(target === 'users') {
-                loadUsers();
-                state.usersInterval = setInterval(loadUsers, 60000);
-            } else if(target === 'protocols') {
-                renderProtocolsFull();
-            } else if(target === 'settings') {
-                document.getElementById('set-panel-url').textContent = window.location.origin;
-                loadSettings();
+        async function copyText(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('Copied to clipboard', 'success');
+            } catch(e) {
+                showToast('Failed to copy', 'error');
             }
         }
 
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', () => switchView(item.dataset.target));
-        });
+        // Modals
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
-        document.getElementById('mobile-toggle').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.toggle('mobile-open');
-        });
-
-        // --- MODALS ---
-        function openModal(id) {
-            document.getElementById(id).classList.add('active');
-        }
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-        }
-
-        // --- AUTH ---
+        // Auth
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('button');
-            const errEl = document.getElementById('login-error');
-            btn.innerHTML = '<div class="spinner"></div>';
-            errEl.textContent = '';
+            const err = document.getElementById('login-error');
+            const user = document.getElementById('login-user').value;
+            const pass = document.getElementById('login-pass').value;
+            
+            btn.innerHTML = '<span class="spin">↻</span> Signing In...';
+            btn.disabled = true;
+            err.textContent = '';
             
             try {
-                const u = document.getElementById('login-username').value;
-                const p = document.getElementById('login-password').value;
-                await api('POST', '/api/login', { username: u, password: p });
-                state.loggedIn = true;
-                state.token = true;
-                document.getElementById('login-view').style.display = 'none';
-                document.getElementById('main-view').style.display = 'flex';
-                showToast('Login successful', 'success');
+                await api('POST', '/api/login', { username: user, password: pass });
+                showMainView();
                 switchView('dashboard');
-            } catch (err) {
-                errEl.textContent = err.message;
-                const card = document.querySelector('.login-card');
-                card.classList.remove('shake');
-                void card.offsetWidth; // trigger reflow
-                card.classList.add('shake');
+                e.target.reset();
+            } catch(error) {
+                err.textContent = error.message;
+                document.querySelector('.login-card').classList.add('shake');
+                setTimeout(() => document.querySelector('.login-card').classList.remove('shake'), 400);
             } finally {
-                btn.innerHTML = '<span>Sign In</span>';
+                btn.innerHTML = 'Sign In';
+                btn.disabled = false;
             }
         });
 
         document.getElementById('btn-logout').addEventListener('click', async () => {
-            try { await api('POST', '/api/logout'); } catch(e) {}
-            state.token = null;
-            state.loggedIn = false;
-            document.getElementById('main-view').style.display = 'none';
-            document.getElementById('login-view').style.display = 'flex';
-            clearInterval(state.dashboardInterval);
-            clearInterval(state.usersInterval);
+            try { await api('POST', '/api/logout'); } catch(e){}
+            showLoginScreen();
         });
 
-        // --- DASHBOARD ---
+        // Dashboard
         async function loadDashboard() {
             try {
                 const data = await api('GET', '/api/dashboard');
-                state.lastUpdate = new Date();
                 
-                // Update stats
-                document.getElementById('stat-total-users').textContent = data.user_count;
-                document.getElementById('stat-online-sessions').textContent = data.online_sessions;
-                document.getElementById('stat-cpu-load').textContent = data.cpu_load_1m.toFixed(2);
+                document.getElementById('stat-users').textContent = data.user_count;
+                document.getElementById('stat-online').textContent = data.online_sessions;
+                document.getElementById('stat-ram').textContent = data.ram_percent + '%';
+                document.getElementById('stat-ram-detail').textContent = `${data.ram_used_mb} MB / ${data.ram_total_mb} MB`;
+                document.getElementById('stat-cpu').textContent = data.cpu_load_1m;
                 
-                // RAM Ring
-                const ramOff = 176 - (176 * data.ram_percent) / 100;
-                const ring = document.getElementById('ram-progress');
-                ring.style.strokeDashoffset = ramOff;
-                ring.style.stroke = data.ram_percent > 80 ? 'var(--danger)' : data.ram_percent > 60 ? 'var(--warning)' : 'var(--primary)';
-                document.getElementById('ram-val').textContent = Math.round(data.ram_percent) + '%';
+                // RAM color
+                const ramCard = document.getElementById('card-ram');
+                if(data.ram_percent > 80) ramCard.style.setProperty('--warning', 'var(--danger)');
+                else if(data.ram_percent < 50) ramCard.style.setProperty('--warning', 'var(--success)');
+                else ramCard.style.setProperty('--warning', '#f59e0b');
 
-                // Server info
-                document.getElementById('srv-ip').textContent = data.server_ip;
-                document.getElementById('srv-os').textContent = data.os_name;
-                document.getElementById('srv-uptime').textContent = data.uptime;
+                document.getElementById('server-ip').textContent = data.server_ip;
+                document.getElementById('server-os').textContent = data.os_name;
+                document.getElementById('server-uptime').textContent = data.uptime;
 
-                // Map protocols for rendering
-                const icons = {'OpenSSH':'🔐','BadVPN (UDPGW)':'🌐','UDP Custom':'📡','HAProxy Edge':'🔀','Nginx Proxy':'🖥️','DNSTT (SlowDNS)':'📶','Falcon Proxy':'🦅','ZiVPN':'🛡️','X-UI / 3X-UI':'📊'};
-                state.protocols = data.protocols.map(p => ({
-                    ...p, id: p.service, icon: icons[p.name] || '🔌',
-                    status: p.running ? 'running' : 'stopped'
-                }));
-                renderProtocolsDashboard();
+                renderProtocols(data.protocols, 'dash-protocols');
+                
+                const now = new Date();
+                document.getElementById('dash-updated').textContent = `Updated ${now.toLocaleTimeString()}`;
             } catch(e) {
-                showToast('Failed to load dashboard data', 'error');
+                if(e.message !== 'Session expired') showToast('Failed to load dashboard', 'error');
             }
         }
 
-        function getProtocolBadge(p) {
-            if(!p.installed) return `<span class="badge badge-muted">⚪ Not Installed</span>`;
-            if(p.status === 'running') return `<span class="badge badge-success"><div class="pulse-dot"></div> 🟢 Running</span>`;
-            return `<span class="badge badge-danger">🔴 Stopped</span>`;
-        }
-
-        function renderProtocolsDashboard() {
-            const grid = document.getElementById('dashboard-protocols-grid');
-            grid.innerHTML = state.protocols.map(p => `
-                <div class="glass-card protocol-card" style="padding: 1rem;">
-                    <div class="flex-between">
-                        <div class="protocol-title">
-                            <span>${p.icon}</span> <span>${p.name}</span>
-                        </div>
-                        ${getProtocolBadge(p)}
-                    </div>
-                    <div class="text-xs text-muted" style="margin-top: 0.5rem;">PORT: ${p.port}</div>
-                </div>
-            `).join('');
-        }
-
-        // --- PROTOCOLS PAGE ---
-        function renderProtocolsFull() {
-            const grid = document.getElementById('full-protocols-grid');
-            grid.innerHTML = state.protocols.map(p => {
-                let border = p.installed ? (p.status==='running' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)') : 'transparent';
-                return `
-                <div class="glass-card protocol-card" style="border-top: 3px solid ${border}">
-                    <div class="protocol-header">
-                        <div class="protocol-title" style="font-size: 1.25rem;">
-                            <span>${p.icon}</span> <span>${p.name}</span>
-                        </div>
-                        <div class="text-sm font-mono text-muted">Port ${p.port}</div>
-                    </div>
-                    <div style="margin: 1rem 0;">
-                        ${getProtocolBadge(p)}
-                    </div>
-                    <div class="actions-flex" style="justify-content: flex-end;">
-                        <button class="btn btn-outline" ${!p.installed ? 'disabled' : ''} onclick="restartProtocol('${p.id}')">
-                            🔄 Restart
-                        </button>
-                    </div>
-                </div>
-            `}).join('');
-        }
-
-        async function restartProtocol(id) {
+        // Protocols
+        async function loadProtocols() {
             try {
-                showToast(`Restarting ${id}...`);
-                await api('POST', `/api/protocols/${id}/restart`);
-                showToast(`${id} restarted successfully`, 'success');
-                loadDashboard(); // Refresh state
-                setTimeout(renderProtocolsFull, 500);
+                const data = await api('GET', '/api/protocols');
+                renderProtocols(data, 'page-protocol-grid');
+                const now = new Date();
+                document.getElementById('proto-updated').textContent = `Updated ${now.toLocaleTimeString()}`;
             } catch(e) {
-                showToast(`Failed to restart ${id}`, 'error');
+                if(e.message !== 'Session expired') showToast('Failed to load protocols', 'error');
             }
         }
 
-        // --- USERS PAGE ---
-        function calculateDaysLeft(expiryIso) {
-            const ms = new Date(expiryIso) - new Date();
-            const days = Math.ceil(ms / 86400000);
-            return days < 0 ? 0 : days;
+        function renderProtocols(protocols, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            protocols.forEach(p => {
+                let statusClass = 'badge-gray';
+                let statusText = '⚫ Not Installed';
+                let borderColor = 'rgba(71, 85, 105, 0.5)';
+                let btnHtml = `<button class="btn" disabled>Install Needed</button>`;
+
+                if(p.installed) {
+                    if(p.running) {
+                        statusClass = 'badge-green'; statusText = '🟢 Running';
+                        borderColor = 'var(--success)';
+                    } else {
+                        statusClass = 'badge-red'; statusText = '🔴 Stopped';
+                        borderColor = 'var(--danger)';
+                    }
+                    btnHtml = `<button class="btn" onclick="restartProtocol('${p.service}')"><span>🔄</span> Restart</button>`;
+                }
+
+                container.innerHTML += `
+                    <div class="card protocol-card" style="border-top: 4px solid ${borderColor}">
+                        <div class="protocol-header">
+                            <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 1.5rem;">📡</span> ${p.name}
+                            </h3>
+                            <span class="badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="text-muted" style="font-size: 0.875rem;">Port: <strong style="color: var(--text-primary);">${p.port || 'N/A'}</strong></div>
+                        ${btnHtml}
+                    </div>
+                `;
+            });
         }
 
-        function getUserStatusBadge(u) {
-            const days = calculateDaysLeft(u.expiry);
-            if (u.status === 'locked') return `<span class="badge badge-warning">🔒 Locked</span>`;
-            if (days <= 0) return `<span class="badge badge-danger">🔴 Expired</span>`;
-            if (u.bwLimit > 0 && u.bwTotal >= u.bwLimit) return `<span class="badge badge-info">🔵 BW Exceeded</span>`;
-            return `<span class="badge badge-success">🟢 Active</span>`;
+        async function restartProtocol(service) {
+            try {
+                showToast(`Restarting ${service}...`, 'info');
+                await api('POST', `/api/protocols/${service}/restart`);
+                showToast(`${service} restarted successfully`);
+                if(document.getElementById('page-dashboard').classList.contains('active')) loadDashboard();
+                if(document.getElementById('page-protocols').classList.contains('active')) loadProtocols();
+            } catch(e) {
+                showToast(e.message, 'error');
+            }
         }
 
+        // Users
         async function loadUsers() {
             try {
                 const data = await api('GET', '/api/users');
-                state.lastUpdate = new Date();
-                // Map backend fields to frontend field names
-                state.users = data.users.map(u => ({
-                    ...u,
-                    expiry: u.expire_date,
-                    limit: u.conn_limit,
-                    sessions: u.online_sessions,
-                    bwTotal: (u.total_used_bytes / 1073741824).toFixed(2),
-                    bwLimit: u.bandwidth_gb,
-                    bwDaily: (u.daily_used_bytes / 1073741824).toFixed(2),
-                    bwDailyLimit: u.daily_bandwidth_gb,
-                    status: u.is_locked ? 'locked' : (u.is_expired ? 'expired' : 'active')
-                }));
-                renderUsersTable();
+                allUsers = data.users;
+                renderUsers(allUsers);
             } catch(e) {
-                showToast('Failed to load users', 'error');
+                if(e.message !== 'Session expired') showToast('Failed to load users', 'error');
             }
         }
 
-        function renderUsersTable(filter = '') {
-            const tbody = document.querySelector('#users-table tbody');
-            const f = filter.toLowerCase();
-            const filtered = state.users.filter(u => u.username.toLowerCase().includes(f));
-            
-            if(filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;" class="text-muted">No users found.</td></tr>`;
+        document.getElementById('search-users').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase();
+            const filtered = allUsers.filter(u => u.username.toLowerCase().includes(q));
+            renderUsers(filtered);
+        });
+
+        function renderUsers(users) {
+            const tbody = document.getElementById('users-tbody');
+            if(users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+                    <div>No users found. Create one to get started.</div>
+                </td></tr>`;
                 return;
             }
 
-            tbody.innerHTML = filtered.map(u => {
-                const days = calculateDaysLeft(u.expiry);
-                const bwText = u.bwLimit > 0 ? `${u.bwTotal}/${u.bwLimit} GB` : `${u.bwTotal} GB (∞)`;
-                const pmask = '*'.repeat(8);
+            tbody.innerHTML = users.map(u => {
+                const isOnline = u.is_online;
+                const sessionsHtml = `<span style="color: ${isOnline ? 'var(--success)' : 'inherit'}">${u.online_sessions}</span> / ${u.conn_limit}`;
+                
+                const dLeft = daysUntil(u.expire_date);
+                const expiryHtml = `<div>${u.expire_date}</div><div class="text-muted" style="font-size: 0.75rem;">${dLeft > 0 ? dLeft+' days left' : 'Expired'}</div>`;
+                
+                let bwHtml = '-';
+                if(u.bandwidth_gb > 0) {
+                    const pct = Math.min(100, (u.total_used_bytes / (u.bandwidth_gb * 1073741824)) * 100);
+                    bwHtml = `
+                        <div>${formatBytes(u.total_used_bytes)} / ${u.bandwidth_gb} GB</div>
+                        <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%; ${pct>90?'background:var(--danger)':''}"></div></div>
+                    `;
+                } else {
+                    bwHtml = `<div>${formatBytes(u.total_used_bytes)} / ∞</div>`;
+                }
+                
+                if(u.daily_bandwidth_gb > 0) {
+                    bwHtml += `<div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">Daily: ${formatBytes(u.daily_used_bytes)} / ${u.daily_bandwidth_gb} GB</div>`;
+                }
+
+                let statusBadge = '';
+                if(u.is_locked) statusBadge = '<span class="badge badge-yellow">🔒 Locked</span>';
+                else if(u.is_expired) statusBadge = '<span class="badge badge-red">🔴 Expired</span>';
+                else if(u.bandwidth_gb > 0 && u.total_used_bytes >= (u.bandwidth_gb * 1073741824)) statusBadge = '<span class="badge badge-red">⛔ BW Exceeded</span>';
+                else statusBadge = '<span class="badge badge-green">🟢 Active</span>';
+
                 return `
-                <tr>
-                    <td><strong>${u.username}</strong></td>
-                    <td>
-                        <div class="password-input-wrap" style="max-width: 120px;">
-                            <input type="password" value="${u.password}" readonly style="background:transparent; border:none; color:var(--text-secondary); width:100%;">
-                            <button class="toggle-password" onclick="copyToClipboard('${u.password}')" title="Copy">📋</button>
-                        </div>
-                    </td>
-                    <td>
-                        <div>${new Date(u.expiry).toLocaleDateString()}</div>
-                        <div class="text-xs text-muted">${days} days left</div>
-                    </td>
-                    <td>${u.sessions} / ${u.limit}</td>
-                    <td class="text-sm">${bwText}</td>
-                    <td>${getUserStatusBadge(u)}</td>
-                    <td>
-                        <div class="actions-flex">
-                            <button class="btn-icon" title="Edit" onclick="editUser('${u.username}')">✏️</button>
-                            <button class="btn-icon" title="Renew" onclick="renewUser('${u.username}')">🔄</button>
-                            <button class="btn-icon" title="${u.status==='locked'?'Unlock':'Lock'}" onclick="toggleLockUser('${u.username}')">${u.status==='locked'?'🔓':'🔒'}</button>
-                            <button class="btn-icon" title="Delete" onclick="confirmDeleteUser('${u.username}')" style="color:var(--danger)">🗑️</button>
-                        </div>
-                    </td>
-                </tr>
+                    <tr>
+                        <td style="font-weight: 500;">${u.username}</td>
+                        <td>
+                            <div class="pwd-cell">
+                                <input type="password" value="${u.password}" readonly style="width: 100px; padding: 0.25rem 0.5rem; background: transparent; border: none; font-family: monospace;">
+                                <button class="btn-icon" style="padding: 0.25rem;" onclick="togglePassword(this)">👁️</button>
+                                <button class="btn-icon" style="padding: 0.25rem;" onclick="copyText('${u.password}')">📋</button>
+                            </div>
+                        </td>
+                        <td>${expiryHtml}</td>
+                        <td>${sessionsHtml}</td>
+                        <td>${bwHtml}</td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <div class="td-actions">
+                                <button class="btn-icon" title="Edit" onclick="editUser('${u.username}')">✏️</button>
+                                <button class="btn-icon" title="Renew" onclick="openRenew('${u.username}', '${u.expire_date}')">🔄</button>
+                                <button class="btn-icon" title="${u.is_locked ? 'Unlock' : 'Lock'}" onclick="toggleLock('${u.username}', ${u.is_locked})">${u.is_locked ? '🔓' : '🔒'}</button>
+                                <button class="btn-icon" title="Reset Bandwidth" onclick="resetBW('${u.username}')">📊</button>
+                                <button class="btn-icon" style="color: var(--danger)" title="Delete" onclick="openDelete('${u.username}')">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
                 `;
             }).join('');
         }
 
-        document.getElementById('search-users').addEventListener('input', (e) => {
-            renderUsersTable(e.target.value);
+        // User Actions
+        document.querySelector('.btn-primary[onclick="openModal(\'user-modal\')"]').addEventListener('click', () => {
+            isEditMode = false;
+            document.getElementById('user-modal-title').textContent = 'Create User';
+            document.getElementById('u-name').disabled = false;
+            document.getElementById('user-form').reset();
+            document.getElementById('u-pass').value = generatePassword();
         });
 
-        // User CRUD actions
-        document.getElementById('btn-create-user').addEventListener('click', () => {
-            document.getElementById('form-user').reset();
-            document.getElementById('user-mode').value = 'create';
-            document.getElementById('user-name').disabled = false;
-            document.getElementById('modal-user-title').textContent = 'Create User';
-            generatePassword('user-pass');
-            openModal('modal-user');
-        });
-
-        document.getElementById('btn-bulk-create').addEventListener('click', () => {
-            document.getElementById('form-bulk').reset();
-            openModal('modal-bulk');
-        });
-
-        function editUser(username) {
-            const u = state.users.find(x => x.username === username);
+        window.editUser = function(username) {
+            const u = allUsers.find(x => x.username === username);
             if(!u) return;
-            document.getElementById('user-mode').value = 'edit';
-            document.getElementById('modal-user-title').textContent = 'Edit User';
-            document.getElementById('user-name').value = u.username;
-            document.getElementById('user-name').disabled = true;
-            document.getElementById('user-pass').value = u.password;
-            document.getElementById('user-days').value = calculateDaysLeft(u.expiry);
-            document.getElementById('user-limit').value = u.limit;
-            document.getElementById('user-bw').value = u.bwLimit;
-            document.getElementById('user-daily-bw').value = u.bwDailyLimit;
-            openModal('modal-user');
-        }
+            isEditMode = true;
+            document.getElementById('user-modal-title').textContent = 'Edit User';
+            document.getElementById('u-name').value = u.username;
+            document.getElementById('u-name').disabled = true;
+            document.getElementById('u-pass').value = u.password;
+            document.getElementById('u-days').value = daysUntil(u.expire_date) > 0 ? daysUntil(u.expire_date) : 30;
+            document.getElementById('u-conn').value = u.conn_limit;
+            document.getElementById('u-bw').value = u.bandwidth_gb;
+            document.getElementById('u-daily-bw').value = u.daily_bandwidth_gb;
+            openModal('user-modal');
+        };
 
-        document.getElementById('form-user').addEventListener('submit', async (e) => {
+        document.getElementById('user-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btn-save-user');
-            const prev = btn.innerHTML;
-            btn.innerHTML = '<div class="spinner"></div>';
-            
+            btn.innerHTML = '<span class="spin">↻</span> Saving...';
+            btn.disabled = true;
+
+            const username = document.getElementById('u-name').value;
+            const payload = {
+                password: document.getElementById('u-pass').value,
+                days: parseInt(document.getElementById('u-days').value),
+                conn_limit: parseInt(document.getElementById('u-conn').value),
+                bandwidth_gb: parseFloat(document.getElementById('u-bw').value),
+                daily_bandwidth_gb: parseFloat(document.getElementById('u-daily-bw').value)
+            };
+
             try {
-                const mode = document.getElementById('user-mode').value;
-                const payload = {
-                    username: document.getElementById('user-name').value,
-                    password: document.getElementById('user-pass').value,
-                    days: parseInt(document.getElementById('user-days').value),
-                    conn_limit: parseInt(document.getElementById('user-limit').value),
-                    bandwidth_gb: parseFloat(document.getElementById('user-bw').value),
-                    daily_bandwidth_gb: parseFloat(document.getElementById('user-daily-bw').value)
-                };
-
-                await api(mode==='create'?'POST':'PUT', `/api/users${mode==='edit'?'/'+payload.username:''}`, payload);
-                showToast(`User ${mode==='create'?'created':'updated'} successfully`, 'success');
-                closeModal('modal-user');
-                loadUsers(); // Refresh
-            } catch(err) {
-                showToast(err.message, 'error');
-            } finally {
-                btn.innerHTML = prev;
-            }
-        });
-
-        let userToDelete = null;
-        function confirmDeleteUser(username) {
-            userToDelete = username;
-            document.getElementById('del-username').textContent = username;
-            openModal('modal-delete');
-        }
-
-        document.getElementById('btn-confirm-delete').addEventListener('click', async () => {
-            if(!userToDelete) return;
-            try {
-                await api('DELETE', `/api/users/${userToDelete}`);
-                showToast(`User ${userToDelete} deleted`, 'success');
-                closeModal('modal-delete');
-                loadUsers();
-            } catch(e) {
-                showToast('Failed to delete user', 'error');
-            }
-        });
-
-        let userToRenew = null;
-        function renewUser(username) {
-            userToRenew = username;
-            document.getElementById('renew-username').textContent = username;
-            document.getElementById('renew-days').value = 30;
-            openModal('modal-renew');
-        }
-
-        document.getElementById('form-renew').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const days = document.getElementById('renew-days').value;
-                await api('POST', `/api/users/${userToRenew}/renew`, { days });
-                showToast(`User renewed for ${days} days`, 'success');
-                closeModal('modal-renew');
-                loadUsers();
-            } catch(e) { showToast('Renewal failed', 'error'); }
-        });
-
-        async function toggleLockUser(username) {
-            try {
-                const u = state.users.find(x => x.username === username);
-                const action = u.status === 'locked' ? 'unlock' : 'lock';
-                await api('POST', `/api/users/${username}/${action}`);
-                u.status = action === 'lock' ? 'locked' : 'active'; // Optimistic update
-                renderUsersTable(document.getElementById('search-users').value);
-                showToast(`User ${action}ed`, 'success');
-            } catch(e) { showToast('Action failed', 'error'); }
-        }
-
-        document.getElementById('form-settings-creds').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = e.target.querySelector('button');
-            btn.innerHTML = '<div class="spinner"></div>';
-            try {
-                const payload = {
-                    current_password: document.getElementById('settings-current-pass').value,
-                    new_username: document.getElementById('settings-new-user').value,
-                    new_password: document.getElementById('settings-new-pass').value
-                };
-                const confirmPass = document.getElementById('settings-confirm-pass').value;
-                if (payload.new_password !== confirmPass) {
-                    throw new Error('Passwords do not match');
+                if(isEditMode) {
+                    await api('PUT', `/api/users/${username}`, payload);
+                    showToast('User updated successfully');
+                } else {
+                    payload.username = username;
+                    await api('POST', '/api/users', payload);
+                    showToast('User created successfully');
                 }
-                await api('PUT', '/api/settings', payload);
-                showToast('Credentials updated successfully! Please re-login.', 'success');
-                e.target.reset();
-                // Force re-login after credential change
-                setTimeout(() => {
-                    state.loggedIn = false;
-                    state.token = null;
-                    renderApp();
-                }, 2000);
-            } catch(err) {
-                showToast(err.message || 'Failed to update credentials', 'error');
+                closeModal('user-modal');
+                loadUsers();
+            } catch(error) {
+                showToast(error.message, 'error');
             } finally {
-                btn.innerHTML = 'Update Credentials';
+                btn.innerHTML = 'Save';
+                btn.disabled = false;
             }
         });
 
-        // Load current username in settings page
-        async function loadSettings() {
+        // Bulk Create
+        document.getElementById('b-prefix').addEventListener('input', updateBulkPreview);
+        document.getElementById('b-count').addEventListener('input', updateBulkPreview);
+        function updateBulkPreview() {
+            const p = document.getElementById('b-prefix').value;
+            const c = parseInt(document.getElementById('b-count').value) || 0;
+            if(c > 0 && p) {
+                document.getElementById('bulk-preview').textContent = `Will create: ${p}1, ${p}2 ... ${p}${c}`;
+            } else {
+                document.getElementById('bulk-preview').textContent = '';
+            }
+        }
+        document.getElementById('bulk-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-bulk');
+            btn.innerHTML = '<span class="spin">↻</span> Creating...';
+            btn.disabled = true;
+
+            const payload = {
+                prefix: document.getElementById('b-prefix').value,
+                count: parseInt(document.getElementById('b-count').value),
+                days: parseInt(document.getElementById('b-days').value),
+                conn_limit: parseInt(document.getElementById('b-conn').value),
+                bandwidth_gb: parseFloat(document.getElementById('b-bw').value),
+                daily_bandwidth_gb: parseFloat(document.getElementById('b-daily').value)
+            };
+
+            try {
+                const res = await api('POST', '/api/users/bulk', payload);
+                closeModal('bulk-modal');
+                
+                // Show results
+                const tbody = document.getElementById('bulk-result-tbody');
+                tbody.innerHTML = '';
+                lastBulkResults = "";
+                res.forEach(u => {
+                    tbody.innerHTML += `<tr><td style="padding: 0.5rem; border-bottom: 1px solid var(--border-subtle);">${u.username}</td><td style="padding: 0.5rem; border-bottom: 1px solid var(--border-subtle); font-family: monospace;">${u.password}</td></tr>`;
+                    lastBulkResults += `${u.username}:${u.password}\n`;
+                });
+                openModal('bulk-result-modal');
+                loadUsers();
+            } catch(error) {
+                showToast(error.message, 'error');
+            } finally {
+                btn.innerHTML = 'Create';
+                btn.disabled = false;
+            }
+        });
+
+        window.copyBulkResults = function() {
+            copyText(lastBulkResults);
+        }
+
+        // Renew
+        window.openRenew = function(username, currentExp) {
+            document.getElementById('r-uname').value = username;
+            document.getElementById('r-curr-exp').textContent = currentExp;
+            document.getElementById('r-days').value = 30;
+            openModal('renew-modal');
+        };
+        document.getElementById('renew-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const uname = document.getElementById('r-uname').value;
+            const days = parseInt(document.getElementById('r-days').value);
+            try {
+                await api('POST', `/api/users/${uname}/renew`, { days });
+                showToast('User renewed');
+                closeModal('renew-modal');
+                loadUsers();
+            } catch(error) { showToast(error.message, 'error'); }
+        });
+
+        // Lock/Unlock
+        window.toggleLock = async function(username, isLocked) {
+            try {
+                const action = isLocked ? 'unlock' : 'lock';
+                await api('POST', `/api/users/${username}/${action}`);
+                showToast(`User ${action}ed successfully`);
+                loadUsers();
+            } catch(error) { showToast(error.message, 'error'); }
+        };
+
+        // Reset BW
+        window.resetBW = async function(username) {
+            if(!confirm(`Reset bandwidth for ${username}?`)) return;
+            try {
+                await api('POST', `/api/users/${username}/reset-bandwidth`);
+                showToast('Bandwidth reset successfully');
+                loadUsers();
+            } catch(error) { showToast(error.message, 'error'); }
+        };
+
+        // Delete
+        window.openDelete = function(username) {
+            document.getElementById('del-uname').textContent = username;
+            document.getElementById('btn-confirm-del').onclick = async () => {
+                try {
+                    await api('DELETE', `/api/users/${username}`);
+                    showToast('User deleted');
+                    closeModal('delete-modal');
+                    loadUsers();
+                } catch(error) { showToast(error.message, 'error'); }
+            };
+            openModal('delete-modal');
+        };
+
+        // Settings
+        async function fetchSettings() {
             try {
                 const data = await api('GET', '/api/settings');
-                const el = document.getElementById('settings-current-user');
-                if (el) el.textContent = data.username;
+                document.getElementById('set-user').value = data.username;
             } catch(e) {}
         }
-
-        // Bulk create form handler
-        document.getElementById('form-bulk').addEventListener('submit', async (e) => {
+        document.getElementById('settings-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = e.target.querySelector('button[type="submit"]');
-            const prev = btn.innerHTML;
-            btn.innerHTML = '<div class="spinner"></div>';
+            const btn = e.target.querySelector('button');
+            const currentPass = document.getElementById('set-curr-pass').value;
+            const newUser = document.getElementById('set-new-user').value;
+            const newPass = document.getElementById('set-new-pass').value;
+
+            btn.innerHTML = '<span class="spin">↻</span> Updating...';
+            btn.disabled = true;
+
             try {
-                const payload = {
-                    prefix: document.getElementById('bulk-prefix').value,
-                    count: parseInt(document.getElementById('bulk-count').value),
-                    days: parseInt(document.getElementById('bulk-days').value),
-                    conn_limit: parseInt(document.getElementById('bulk-limit').value),
-                    bandwidth_gb: parseFloat(document.getElementById('bulk-bw').value || 0),
-                    daily_bandwidth_gb: parseFloat(document.getElementById('bulk-daily-bw').value || 0)
-                };
-                const result = await api('POST', '/api/users/bulk', payload);
-                showToast(`${result.length} users created successfully!`, 'success');
-                closeModal('modal-bulk');
-                loadUsers();
-            } catch(err) {
-                showToast(err.message, 'error');
-            } finally {
-                btn.innerHTML = prev;
+                await api('PUT', '/api/settings', {
+                    current_password: currentPass,
+                    new_username: newUser,
+                    new_password: newPass
+                });
+                showToast('Credentials updated. Please log in again.');
+                e.target.reset();
+                setTimeout(() => {
+                    api('POST', '/api/logout').finally(() => {
+                        window.location.reload();
+                    });
+                }, 2000);
+            } catch(error) {
+                showToast(error.message, 'error');
+                btn.innerHTML = 'Update Credentials';
+                btn.disabled = false;
             }
         });
     </script>
