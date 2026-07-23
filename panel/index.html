@@ -2,785 +2,735 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FirewallFalcon Panel</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🦅 FirewallFalcon Control Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦅</text></svg>">
     <style>
         :root {
-            --bg-primary: #0b0f1a;
-            --bg-secondary: #111827;
-            --bg-card: rgba(17, 24, 39, 0.8);
-            --bg-card-hover: rgba(17, 24, 39, 0.95);
-            --border-subtle: rgba(255, 255, 255, 0.06);
-            --border-hover: rgba(0, 212, 255, 0.3);
-            --accent: #00d4ff;
-            --accent-glow: rgba(0, 212, 255, 0.15);
-            --accent-secondary: #7c3aed;
+            --bg-dark: #07090e;
+            --bg-card: rgba(15, 23, 42, 0.75);
+            --bg-card-hover: rgba(30, 41, 59, 0.85);
+            --bg-input: rgba(15, 23, 42, 0.9);
+            --border-glow: rgba(56, 189, 248, 0.2);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            
+            --accent-cyan: #38bdf8;
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-blue: #3b82f6;
+            
             --success: #10b981;
-            --danger: #ef4444;
             --warning: #f59e0b;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #475569;
+            --danger: #ef4444;
+            
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --text-dim: #64748b;
+            
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            
+            --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); -webkit-tap-highlight-color: transparent; }
 
         body {
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            overflow-x: hidden;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
             min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
+            background-attachment: fixed;
         }
 
-        /* Background Animation */
-        .bg-mesh {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            z-index: -1;
-            background: 
-                radial-gradient(circle at 15% 50%, rgba(0, 212, 255, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 85% 30%, rgba(124, 58, 237, 0.05) 0%, transparent 50%);
-            animation: meshFlow 15s ease-in-out infinite alternate;
-        }
-        @keyframes meshFlow {
-            0% { transform: scale(1); opacity: 0.8; }
-            100% { transform: scale(1.1); opacity: 1; }
-        }
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan); }
 
-        /* Typography */
-        h1 { font-size: 1.75rem; font-weight: 700; color: var(--text-primary); }
-        h2 { font-size: 1.25rem; font-weight: 600; }
-        h3 { font-size: 1rem; font-weight: 600; color: var(--text-primary); }
-        p { font-size: 0.875rem; font-weight: 400; color: var(--text-secondary); }
-        .label { font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
-        .text-muted { color: var(--text-muted); }
-        
+        /* Typography & Utilities */
         .gradient-text {
-            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .mono { font-family: var(--font-mono); }
+        .hidden { display: none !important; }
         
-        @keyframes pulseDot {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-        .status-dot {
-            width: 8px; height: 8px; border-radius: 50%; display: inline-block;
-        }
-        .status-dot.online { background-color: var(--success); animation: pulseDot 2s infinite; }
-        .status-dot.offline { background-color: var(--danger); }
-        
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-5px); }
-            40%, 80% { transform: translateX(5px); }
-        }
-        .shake { animation: shake 0.4s ease-in-out; }
-
-        /* UI Elements */
-        .card {
+        /* Glass Card */
+        .glass-card {
             background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid var(--border-subtle);
-            border-radius: 16px;
-            backdrop-filter: blur(20px);
-            padding: 1.5rem;
-            transition: all 0.3s ease;
+            border-radius: var(--radius-lg);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .card:hover {
-            border-color: var(--border-hover);
-            box-shadow: 0 0 40px var(--accent-glow);
-            background: var(--bg-card-hover);
+        .glass-card:hover {
+            border-color: var(--border-glow);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
         }
 
+        /* Buttons */
         .btn {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-subtle);
-            padding: 0.5rem 1rem;
-            border-radius: 10px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
+            padding: 0.65rem 1.2rem;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
             transition: all 0.2s ease;
             text-decoration: none;
+            white-space: nowrap;
         }
-        .btn:hover { border-color: var(--text-muted); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        
         .btn-primary {
-            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
-            border: none;
-            color: #fff;
-            box-shadow: 0 4px 15px var(--accent-glow);
+            background: linear-gradient(135deg, var(--accent-cyan), #0284c7);
+            color: #04111d;
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.3);
         }
-        .btn-primary:hover {
-            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.3);
-            transform: translateY(-1px);
-        }
-        .btn-danger { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05); }
-        .btn-danger:hover { background: rgba(239, 68, 68, 0.1); border-color: var(--danger); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4); }
         
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border-color: var(--border-subtle);
+        }
+        .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
+        
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.25); border-color: var(--danger); }
+
         .btn-icon {
-            padding: 0.5rem;
-            border-radius: 8px;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-        }
-        .btn-icon:hover { background: var(--bg-secondary); color: var(--text-primary); }
-
-        .input-group {
-            margin-bottom: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .input-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-        .input-wrapper .prefix {
-            position: absolute; left: 1rem; color: var(--text-muted);
-        }
-        .input-wrapper .suffix {
-            position: absolute; right: 0.5rem;
-        }
-        input, select {
-            width: 100%;
-            background: #0f172a;
+            width: 36px; height: 36px;
+            padding: 0;
+            border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-sub);
             border: 1px solid var(--border-subtle);
-            color: var(--text-primary);
+            cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .btn-icon:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.1); border-color: var(--accent-cyan); }
+
+        /* Form Inputs */
+        .input-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+        .input-group label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-sub); }
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+        .input-wrapper input, .input-wrapper select {
+            width: 100%;
             padding: 0.75rem 1rem;
-            border-radius: 10px;
-            font-size: 0.875rem;
-            transition: all 0.2s ease;
+            background: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            color: var(--text-main);
+            font-size: 0.9rem;
             outline: none;
+            transition: all 0.2s;
         }
-        .input-wrapper input { padding-left: 2.5rem; }
-        input:focus, select:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px var(--accent-glow);
+        .input-wrapper input:focus, .input-wrapper select:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
         }
-        
-        .badge {
-            display: inline-flex; align-items: center; gap: 0.375rem;
-            padding: 0.25rem 0.6rem; border-radius: 9999px;
-            font-size: 0.75rem; font-weight: 500;
-        }
-        .badge-green { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
-        .badge-red { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
-        .badge-gray { background: rgba(71, 85, 105, 0.1); color: var(--text-secondary); border: 1px solid rgba(71, 85, 105, 0.2); }
-        .badge-yellow { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
 
-        .progress-bar { width: 100%; height: 4px; background: var(--bg-secondary); border-radius: 2px; overflow: hidden; margin-top: 0.5rem; }
-        .progress-fill { height: 100%; background: var(--accent); transition: width 0.3s ease; }
+        /* Toast Container */
+        #toast-container {
+            position: fixed; top: 1rem; right: 1rem; z-index: 9999;
+            display: flex; flex-direction: column; gap: 0.5rem;
+            pointer-events: none;
+        }
+        .toast {
+            pointer-events: auto;
+            min-width: 280px; padding: 0.85rem 1.2rem;
+            border-radius: var(--radius-md);
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-main); font-size: 0.875rem; font-weight: 500;
+            display: flex; align-items: center; gap: 0.6rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: toastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--accent-cyan); }
 
-        /* Login Screen */
+        /* Login Layout */
         #login-view {
-            display: flex; align-items: center; justify-content: center; min-height: 100vh;
-            padding: 1rem;
+            display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1.5rem;
         }
         .login-card {
-            width: 100%; max-width: 420px; text-align: center;
+            width: 100%; max-width: 400px; padding: 2.5rem 2rem; text-align: center;
         }
-        .login-logo { font-size: 3rem; margin-bottom: 0.5rem; line-height: 1; }
-        #login-error { color: var(--danger); font-size: 0.875rem; margin-top: 1rem; min-height: 1.25rem; }
+        .login-brand { font-size: 3rem; margin-bottom: 0.5rem; }
+        .login-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.25rem; }
+        .login-subtitle { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 2rem; }
 
-        /* Main Layout */
+        /* Main App Layout */
         #app-view { display: flex; min-height: 100vh; }
+        
+        /* Sidebar */
         .sidebar {
-            width: 250px; background: rgba(11, 15, 26, 0.95);
+            width: 260px;
+            background: rgba(11, 15, 25, 0.95);
             border-right: 1px solid var(--border-subtle);
             display: flex; flex-direction: column;
             position: fixed; top: 0; bottom: 0; left: 0;
-            z-index: 40; backdrop-filter: blur(20px);
+            z-index: 100;
             transition: transform 0.3s ease;
         }
-        .sidebar-header { padding: 1.5rem; display: flex; align-items: center; gap: 0.75rem; }
-        .sidebar-nav { flex: 1; padding: 1rem; display: flex; flex-direction: column; gap: 0.25rem; }
-        .nav-item {
-            display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem;
-            color: var(--text-secondary); text-decoration: none; border-radius: 10px;
-            transition: all 0.2s ease; cursor: pointer; border-left: 3px solid transparent;
+        .sidebar-header {
+            padding: 1.5rem; display: flex; align-items: center; gap: 0.75rem;
+            border-bottom: 1px solid var(--border-subtle);
         }
-        .nav-item:hover { background: var(--bg-secondary); color: var(--text-primary); }
-        .nav-item.active {
-            background: var(--accent-glow); color: var(--text-primary);
-            border-left-color: var(--accent);
-        }
-        .sidebar-footer { padding: 1rem; border-top: 1px solid var(--border-subtle); }
+        .sidebar-brand { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; }
         
-        .main-content {
-            flex: 1; margin-left: 250px; padding: 2rem; max-width: 1400px;
+        .sidebar-nav { padding: 1rem; display: flex; flex-direction: column; gap: 0.35rem; flex: 1; }
+        .nav-item {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.75rem 1rem; border-radius: var(--radius-md);
+            color: var(--text-sub); font-size: 0.9rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
         }
-        .mobile-header {
-            display: none; padding: 1rem; border-bottom: 1px solid var(--border-subtle);
-            background: var(--bg-primary); position: sticky; top: 0; z-index: 30;
+        .nav-item:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.05); }
+        .nav-item.active { color: var(--accent-cyan); background: rgba(56, 189, 248, 0.1); border-left: 3px solid var(--accent-cyan); }
+
+        .sidebar-footer { padding: 1rem; border-top: 1px solid var(--border-subtle); }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1; margin-left: 260px; padding: 2rem;
+            max-width: 1400px; transition: margin 0.3s ease;
+        }
+
+        /* Top Mobile Bar */
+        .mobile-bar {
+            display: none;
+            position: fixed; top: 0; left: 0; right: 0; height: 60px;
+            background: rgba(7, 9, 14, 0.9); backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-subtle);
+            z-index: 90; padding: 0 1rem;
             align-items: center; justify-content: space-between;
         }
 
-        /* Views */
-        .page-view { display: none; }
-        .page-view.active { display: block; }
-        .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+        /* Page Headers */
+        .page-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 2rem; gap: 1rem; flex-wrap: wrap;
+        }
+        .page-title { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
 
-        /* Dashboard Grid */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+        /* Status Badges */
+        .badge {
+            display: inline-flex; align-items: center; gap: 0.35rem;
+            padding: 0.25rem 0.65rem; border-radius: 9999px;
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+        }
+        .badge-green { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-red { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge-yellow { background: rgba(245, 158, 11, 0.15); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-gray { background: rgba(148, 163, 184, 0.15); color: var(--text-sub); border: 1px solid var(--border-subtle); }
+
+        /* Dashboard Stats Grid */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem; margin-bottom: 2rem;
+        }
         .stat-card {
+            padding: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem;
             position: relative; overflow: hidden;
         }
-        .stat-card::before {
-            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
-            background: var(--accent);
-        }
-        .stat-card[data-type="users"]::before { background: var(--accent); }
-        .stat-card[data-type="online"]::before { background: var(--success); }
-        .stat-card[data-type="ram"]::before { background: var(--warning); }
-        .stat-card[data-type="cpu"]::before { background: var(--accent-secondary); }
-        .stat-value { font-size: 2rem; font-weight: 700; color: var(--text-primary); margin: 0.5rem 0; }
-        
-        .server-strip {
-            display: flex; gap: 2rem; padding: 1rem 1.5rem; margin-bottom: 2rem; flex-wrap: wrap;
-            background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; backdrop-filter: blur(20px);
-        }
-        .server-strip-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: var(--text-secondary); }
+        .stat-label { font-size: 0.75rem; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-value { font-size: 1.8rem; font-weight: 800; color: var(--text-main); }
+        .stat-desc { font-size: 0.8rem; color: var(--text-dim); }
 
-        .protocol-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
-        .protocol-card { display: flex; flex-direction: column; gap: 1rem; }
-        .protocol-header { display: flex; justify-content: space-between; align-items: center; }
-        
-        /* Table */
-        .table-container { overflow-x: auto; }
+        /* Server Info Bar */
+        .server-info-bar {
+            padding: 1rem 1.5rem; margin-bottom: 2rem;
+            display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;
+        }
+        .info-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; }
+        .info-label { color: var(--text-dim); font-weight: 500; }
+        .info-val { color: var(--text-main); font-weight: 700; }
+
+        /* Table & Card View for Users */
+        .table-responsive { width: 100%; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
-        th { padding: 1rem; border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-        td { padding: 1rem; border-bottom: 1px solid var(--border-subtle); font-size: 0.875rem; white-space: nowrap; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover { background: rgba(255, 255, 255, 0.02); }
-        
-        .td-actions { display: flex; gap: 0.25rem; }
-        .pwd-cell { display: flex; align-items: center; gap: 0.5rem; font-family: monospace; }
-        
-        /* Modals */
-        .modal-backdrop {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        th {
+            padding: 0.85rem 1rem; font-size: 0.75rem; font-weight: 700;
+            color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-subtle); background: rgba(255, 255, 255, 0.02);
         }
-        .modal-backdrop.active { opacity: 1; pointer-events: auto; }
-        .modal {
-            width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;
-            transform: translateY(20px); transition: transform 0.3s ease;
-            margin: 1rem;
-        }
-        .modal-backdrop.active .modal { transform: translateY(0); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-        .modal-footer { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; }
+        td { padding: 1rem; font-size: 0.875rem; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+        tr:hover td { background: rgba(255, 255, 255, 0.02); }
 
-        /* Toasts */
-        #toast-container {
-            position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999;
-            display: flex; flex-direction: column; gap: 0.75rem; pointer-events: none;
+        /* Mobile Users Cards (Hidden on Desktop) */
+        .users-mobile-grid { display: none; flex-direction: column; gap: 1rem; }
+        .user-mobile-card {
+            padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem;
         }
-        .toast {
-            background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px;
-            padding: 1rem 1.25rem; backdrop-filter: blur(20px); box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            display: flex; align-items: center; gap: 0.75rem; pointer-events: auto;
-            transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        .user-card-header { display: flex; align-items: center; justify-content: space-between; }
+        .user-card-title { font-size: 1.1rem; font-weight: 700; }
+        .user-card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.8rem; }
+        .meta-box { background: rgba(0, 0, 0, 0.2); padding: 0.5rem; border-radius: var(--radius-sm); }
+        .user-card-actions { display: flex; gap: 0.5rem; border-top: 1px solid var(--border-subtle); pt: 0.75rem; margin-top: 0.5rem; }
+
+        /* Protocol Grid */
+        .protocol-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;
         }
-        .toast.show { transform: translateX(0); }
-        .toast.success { border-left: 4px solid var(--success); }
-        .toast.error { border-left: 4px solid var(--danger); }
-        .toast.info { border-left: 4px solid var(--accent); }
-
-        /* Utilities */
-        .hidden { display: none !important; }
-        .spin { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-        /* Responsive — Tablet */
-        @media (max-width: 1024px) {
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .protocol-grid { grid-template-columns: repeat(2, 1fr); }
-            .server-info { flex-direction: column; gap: 0.75rem; }
+        .protocol-card {
+            padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;
         }
 
-        /* Responsive — Mobile */
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-                z-index: 1000;
-                box-shadow: 4px 0 30px rgba(0,0,0,0.5);
-            }
-            .sidebar.open { transform: translateX(0); }
-            .sidebar-overlay {
-                display: none;
-                position: fixed; inset: 0;
-                background: rgba(0,0,0,0.6);
-                z-index: 999;
-            }
-            .sidebar-overlay.active { display: block; }
-            .main-content { margin-left: 0; padding: 1rem; padding-top: 4.5rem; }
-            .mobile-header {
-                display: flex;
-                position: fixed; top: 0; left: 0; right: 0;
-                z-index: 998;
-                background: rgba(11, 15, 26, 0.95);
-                backdrop-filter: blur(12px);
-                border-bottom: 1px solid var(--border-subtle);
-                padding: 0.75rem 1rem;
-                align-items: center;
-                gap: 0.75rem;
-            }
-            .mobile-header h3 { font-size: 1rem; }
-            .page-header { flex-direction: column; align-items: stretch; gap: 1rem; }
-            .page-header .header-actions { 
-                display: flex; flex-wrap: wrap; gap: 0.5rem;
-                width: 100%;
-            }
-            .page-header .header-actions .btn { flex: 1; min-width: 0; text-align: center; font-size: 0.8rem; padding: 0.5rem 0.75rem; }
-            .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-            .stat-card { padding: 1rem; }
-            .stat-card .stat-value { font-size: 1.5rem; }
-            .protocol-grid { grid-template-columns: 1fr; gap: 0.75rem; }
-            .server-info { flex-direction: column; gap: 0.5rem; padding: 1rem; }
-            .server-info span { font-size: 0.8rem; }
-
-            /* Table: horizontally scrollable + compact */
-            .table-container { 
-                overflow-x: auto; 
-                -webkit-overflow-scrolling: touch;
-                margin: 0 -1rem;
-                padding: 0 1rem;
-            }
-            table { min-width: 700px; font-size: 0.78rem; }
-            table th, table td { padding: 0.5rem 0.6rem; white-space: nowrap; }
-            .action-btns button { padding: 0.25rem; font-size: 0.85rem; min-width: 28px; }
-
-            /* Modal: full-screen on mobile */
-            .modal-content {
-                width: 95% !important;
-                max-width: 100% !important;
-                max-height: 85vh;
-                margin: auto;
-                border-radius: 16px 16px 0 0;
-                position: fixed;
-                bottom: 0;
-                left: 2.5%;
-            }
-            .modal-content .input-group { margin-bottom: 0.75rem; }
-            .modal-content input, .modal-content select { font-size: 16px; /* prevents iOS zoom */ }
-
-            /* Login card */
-            .login-card { margin: 1rem; padding: 2rem 1.5rem; }
-
-            /* Settings */
-            .settings-grid { grid-template-columns: 1fr !important; }
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px);
+            z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem;
+            opacity: 0; pointer-events: none; transition: all 0.25s ease;
         }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-box {
+            width: 100%; max-width: 520px;
+            background: #0f172a; border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg); padding: 1.75rem;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .modal-overlay.active .modal-box { transform: translateY(0); }
+        .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+        .modal-title { font-size: 1.25rem; font-weight: 800; }
+        .modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
 
-        /* Responsive — Very small phones */
-        @media (max-width: 400px) {
-            .stats-grid { grid-template-columns: 1fr; }
-            .main-content { padding: 0.75rem; padding-top: 4.5rem; }
-            .page-title { font-size: 1.25rem; }
+        /* Mobile Breakpoints */
+        @media (max-width: 868px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.active { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: 5rem 1rem 2rem 1rem; }
+            .mobile-bar { display: flex; }
+            .desktop-table-wrapper { display: none; }
+            .users-mobile-grid { display: flex; }
+            .page-header { flex-direction: column; align-items: stretch; }
+            .page-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+            .page-actions .btn { flex: 1; }
+            .modal-overlay { align-items: flex-end; padding: 0; }
+            .modal-box { border-radius: var(--radius-lg) var(--radius-lg) 0 0; max-height: 90vh; overflow-y: auto; }
         }
     </style>
 </head>
 <body>
-    <div class="bg-mesh"></div>
+
     <div id="toast-container"></div>
 
-    <!-- LOGIN VIEW -->
-    <div id="login-view" class="view hidden">
-        <div class="card login-card animate-fade-in">
-            <div class="login-logo">🦅</div>
-            <h1 class="gradient-text">FirewallFalcon</h1>
-            <p class="text-muted" style="margin-bottom: 2rem;">Control Panel</p>
-            
+    <!-- LOGIN SCREEN -->
+    <div id="login-view">
+        <div class="glass-card login-card">
+            <div class="login-brand">🦅</div>
+            <h1 class="login-title gradient-text">FirewallFalcon</h1>
+            <p class="login-subtitle">Control Panel Authentication</p>
+
             <form id="login-form">
                 <div class="input-group">
+                    <label>Username</label>
                     <div class="input-wrapper">
-                        <span class="prefix">👤</span>
-                        <input type="text" id="login-user" placeholder="Username" required>
+                        <input type="text" id="login-user" placeholder="Admin username" required autocomplete="username">
                     </div>
                 </div>
                 <div class="input-group">
+                    <label>Password</label>
                     <div class="input-wrapper">
-                        <span class="prefix">🔑</span>
-                        <input type="password" id="login-pass" placeholder="Password" required>
+                        <input type="password" id="login-pass" placeholder="Admin password" required autocomplete="current-password">
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;">
-                    Sign In
+                <button type="submit" id="btn-login-submit" class="btn btn-primary" style="width:100%; margin-top: 1rem; padding: 0.85rem;">
+                    Sign In to Panel
                 </button>
-                <div id="login-error"></div>
             </form>
         </div>
     </div>
 
-    <!-- APP VIEW -->
-    <div id="app-view" class="view hidden">
-        <!-- Sidebar -->
+    <!-- MAIN APP SCREEN -->
+    <div id="app-view" class="hidden">
+        
+        <!-- Mobile Navigation Bar -->
+        <div class="mobile-bar">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+                <span style="font-size:1.5rem;">🦅</span>
+                <span class="gradient-text" style="font-weight:800; font-size:1.1rem;">FirewallFalcon</span>
+            </div>
+            <button class="btn-icon" id="btn-mobile-toggle">☰</button>
+        </div>
+
+        <!-- Sidebar Drawer -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <span style="font-size: 1.5rem;">🦅</span>
-                <h2 class="gradient-text" style="font-size: 1.1rem;">FirewallFalcon</h2>
+                <span style="font-size:1.6rem;">🦅</span>
+                <span class="sidebar-brand gradient-text">FirewallFalcon</span>
             </div>
             <nav class="sidebar-nav">
-                <a class="nav-item active" data-target="dashboard">
+                <div class="nav-item active" data-tab="dashboard">
                     <span>📊</span> Dashboard
-                </a>
-                <a class="nav-item" data-target="users">
-                    <span>👥</span> Users
-                </a>
-                <a class="nav-item" data-target="protocols">
-                    <span>📡</span> Protocols
-                </a>
-                <a class="nav-item" data-target="settings">
-                    <span>⚙️</span> Settings
-                </a>
+                </div>
+                <div class="nav-item" data-tab="users">
+                    <span>👥</span> User Accounts
+                </div>
+                <div class="nav-item" data-tab="protocols">
+                    <span>📡</span> Protocol Services
+                </div>
+                <div class="nav-item" data-tab="settings">
+                    <span>⚙️</span> Panel Settings
+                </div>
             </nav>
             <div class="sidebar-footer">
-                <button id="btn-logout" class="btn btn-danger" style="width: 100%;">
-                    <span>🚪</span> Logout
+                <button class="btn btn-danger" id="btn-logout" style="width:100%;">
+                    <span>🚪</span> Log Out
                 </button>
             </div>
         </aside>
-        <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
         <!-- Main Content -->
         <main class="main-content">
-            <div class="mobile-header">
-                <button class="btn-icon" id="btn-menu" style="font-size: 1.5rem;">☰</button>
-                <span style="font-size: 1.2rem;">🦅</span>
-                <h3 class="gradient-text">FirewallFalcon</h3>
-            </div>
-
-            <!-- Dashboard Page -->
-            <div id="page-dashboard" class="page-view active animate-fade-in">
+            
+            <!-- DASHBOARD TAB -->
+            <section id="tab-dashboard" class="tab-page">
                 <div class="page-header">
                     <div>
-                        <h1>Dashboard</h1>
-                        <p>Overview of your server and protocols</p>
+                        <h1 class="page-title">Dashboard Overview</h1>
+                        <p style="color:var(--text-sub); font-size:0.875rem;">Live system metrics and service health</p>
                     </div>
-                    <p class="text-muted" id="dash-updated" style="font-size: 0.75rem;"></p>
+                    <button class="btn btn-secondary" onclick="loadDashboard()">🔄 Refresh Metrics</button>
                 </div>
 
                 <div class="stats-grid">
-                    <div class="card stat-card" data-type="users">
-                        <div class="label">Total Users</div>
-                        <div class="stat-value" id="stat-users">0</div>
-                        <div class="text-muted" style="font-size: 0.875rem;">👥 Registered accounts</div>
+                    <div class="glass-card stat-card">
+                        <span class="stat-label">Managed Users</span>
+                        <div class="stat-value" id="dash-total-users">--</div>
+                        <span class="stat-desc">Total registered SSH accounts</span>
                     </div>
-                    <div class="card stat-card" data-type="online">
-                        <div class="label">Online Now</div>
-                        <div class="stat-value" id="stat-online">0</div>
-                        <div class="text-muted" style="font-size: 0.875rem;"><span class="status-dot online"></span> Active sessions</div>
+                    <div class="glass-card stat-card">
+                        <span class="stat-label">Active Online Sessions</span>
+                        <div class="stat-value gradient-text" id="dash-online-users">--</div>
+                        <span class="stat-desc">Live connected devices</span>
                     </div>
-                    <div class="card stat-card" data-type="ram" id="card-ram">
-                        <div class="label">RAM Usage</div>
-                        <div class="stat-value" id="stat-ram">0%</div>
-                        <div class="text-muted" style="font-size: 0.875rem;" id="stat-ram-detail">0 MB / 0 MB</div>
+                    <div class="glass-card stat-card">
+                        <span class="stat-label">RAM Usage</span>
+                        <div class="stat-value" id="dash-ram-percent">--%</div>
+                        <span class="stat-desc" id="dash-ram-detail">-- / -- MB</span>
                     </div>
-                    <div class="card stat-card" data-type="cpu">
-                        <div class="label">CPU Load (1m)</div>
-                        <div class="stat-value" id="stat-cpu">0.00</div>
-                        <div class="text-muted" style="font-size: 0.875rem;">🖥️ System load avg</div>
+                    <div class="glass-card stat-card">
+                        <span class="stat-label">CPU Load (1m)</span>
+                        <div class="stat-value" id="dash-cpu-load">--</div>
+                        <span class="stat-desc">System load average</span>
                     </div>
                 </div>
 
-                <div class="server-strip">
-                    <div class="server-strip-item">🌐 IP: <span id="server-ip" class="text-primary">-</span></div>
-                    <div class="server-strip-item">🖥️ OS: <span id="server-os" class="text-primary">-</span></div>
-                    <div class="server-strip-item">⏱️ Uptime: <span id="server-uptime" class="text-primary">-</span></div>
+                <div class="glass-card server-info-bar">
+                    <div class="info-item">
+                        <span class="info-label">Server IPv4:</span>
+                        <span class="info-val mono" id="server-ip">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">OS:</span>
+                        <span class="info-val" id="server-os">--</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Uptime:</span>
+                        <span class="info-val" id="server-uptime">--</span>
+                    </div>
                 </div>
 
-                <h3>Protocol Status</h3>
-                <div class="protocol-grid" id="dash-protocols" style="margin-top: 1rem;">
-                    <!-- Protocols injected here -->
+                <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:1rem;">Protocol Status</h2>
+                <div class="protocol-grid" id="dash-protocols-grid">
+                    <!-- Populated dynamically -->
                 </div>
-            </div>
+            </section>
 
-            <!-- Users Page -->
-            <div id="page-users" class="page-view animate-fade-in">
+            <!-- USERS TAB -->
+            <section id="tab-users" class="tab-page hidden">
                 <div class="page-header">
                     <div>
-                        <h1>Users</h1>
-                        <p>Manage VPN accounts and bandwidth limits</p>
+                        <h1 class="page-title">User Accounts</h1>
+                        <p style="color:var(--text-sub); font-size:0.875rem;">Manage SSH accounts, limits, and expiration</p>
                     </div>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <div class="input-wrapper" style="width: 200px;">
-                            <span class="prefix" style="top: 50%; transform: translateY(-50%);">🔍</span>
-                            <input type="text" id="search-users" placeholder="Search...">
-                        </div>
-                        <button class="btn btn-primary" onclick="openModal('user-modal')"><span>+</span> New User</button>
-                        <button class="btn" onclick="openModal('bulk-modal')">👥 Bulk Create</button>
+                    <div class="page-actions">
+                        <button class="btn btn-primary" onclick="openCreateUserModal()">+ Create User</button>
+                        <button class="btn btn-secondary" onclick="openBulkCreateModal()">👥 Bulk Create</button>
                     </div>
                 </div>
 
-                <div class="card table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Username</th>
-                                <th>Password</th>
-                                <th>Expiry</th>
-                                <th>Sessions</th>
-                                <th>Bandwidth</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="users-tbody">
-                            <!-- Users injected here -->
-                        </tbody>
-                    </table>
+                <!-- Search Bar -->
+                <div style="margin-bottom: 1.25rem;">
+                    <div class="input-wrapper">
+                        <input type="text" id="user-search-input" placeholder="🔍 Search username..." onkeyup="filterUsers()">
+                    </div>
                 </div>
-            </div>
 
-            <!-- Protocols Page -->
-            <div id="page-protocols" class="page-view animate-fade-in">
+                <!-- Desktop Table View -->
+                <div class="glass-card desktop-table-wrapper">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Password</th>
+                                    <th>Expiry</th>
+                                    <th>Sessions</th>
+                                    <th>Total BW</th>
+                                    <th>Daily BW</th>
+                                    <th>Status</th>
+                                    <th style="text-align:right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Mobile Cards View -->
+                <div class="users-mobile-grid" id="users-mobile-grid">
+                    <!-- Populated dynamically -->
+                </div>
+            </section>
+
+            <!-- PROTOCOLS TAB -->
+            <section id="tab-protocols" class="tab-page hidden">
                 <div class="page-header">
                     <div>
-                        <h1>Protocols</h1>
-                        <p>Manage installed VPN services</p>
+                        <h1 class="page-title">Protocol Management</h1>
+                        <p style="color:var(--text-sub); font-size:0.875rem;">Monitor and restart server protocols</p>
                     </div>
-                    <p class="text-muted" id="proto-updated" style="font-size: 0.75rem;"></p>
+                    <button class="btn btn-secondary" onclick="loadProtocols()">🔄 Refresh Status</button>
                 </div>
-                <div class="protocol-grid" id="page-protocol-grid">
-                    <!-- Protocol cards here -->
-                </div>
-            </div>
 
-            <!-- Settings Page -->
-            <div id="page-settings" class="page-view animate-fade-in">
+                <div class="protocol-grid" id="protocols-full-grid">
+                    <!-- Populated dynamically -->
+                </div>
+            </section>
+
+            <!-- SETTINGS TAB -->
+            <section id="tab-settings" class="tab-page hidden">
                 <div class="page-header">
                     <div>
-                        <h1>Settings</h1>
-                        <p>Panel configuration</p>
+                        <h1 class="page-title">Panel Settings</h1>
+                        <p style="color:var(--text-sub); font-size:0.875rem;">Configure admin credentials and secret access URL</p>
                     </div>
                 </div>
-                <div class="stats-grid">
-                    <div class="card">
-                        <h3>Admin Credentials</h3>
-                        <p style="margin-bottom: 1.5rem; margin-top: 0.5rem;">Update your panel login credentials.</p>
-                        <form id="settings-form">
-                            <div class="input-group">
-                                <label class="label">Current Username</label>
-                                <input type="text" id="set-user" disabled style="background: rgba(255,255,255,0.02);">
-                            </div>
-                            <div class="input-group">
-                                <label class="label">New Username</label>
-                                <input type="text" id="set-new-user" required>
-                            </div>
-                            <div class="input-group">
-                                <label class="label">Current Password</label>
-                                <input type="password" id="set-curr-pass" required>
-                            </div>
-                            <div class="input-group">
-                                <label class="label">New Password</label>
-                                <input type="password" id="set-new-pass" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Update Credentials</button>
-                        </form>
-                    </div>
-                    <div class="card">
-                        <h3>Panel Info</h3>
-                        <p style="margin-bottom: 1.5rem; margin-top: 0.5rem;">System information.</p>
+
+                <div class="glass-card" style="max-width: 600px; padding: 2rem;">
+                    <form id="settings-form">
                         <div class="input-group">
-                            <label class="label">Panel URL</label>
-                            <input type="text" id="info-url" disabled style="background: rgba(255,255,255,0.02);">
+                            <label>Current Username</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="setting-current-user" readonly disabled style="opacity:0.6;">
+                            </div>
                         </div>
+
                         <div class="input-group">
-                            <label class="label">Panel Port</label>
-                            <input type="text" value="44380" disabled style="background: rgba(255,255,255,0.02);">
+                            <label>Current Admin Password (Required to save changes)</label>
+                            <div class="input-wrapper">
+                                <input type="password" id="setting-curr-pass" placeholder="Verify current password" required>
+                            </div>
                         </div>
+
                         <div class="input-group">
-                            <label class="label">Version</label>
-                            <input type="text" value="1.0.0" disabled style="background: rgba(255,255,255,0.02);">
+                            <label>New Username (Optional)</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="setting-new-user" placeholder="Enter new username">
+                            </div>
                         </div>
-                    </div>
+
+                        <div class="input-group">
+                            <label>New Password (Optional)</label>
+                            <div class="input-wrapper">
+                                <input type="password" id="setting-new-pass" placeholder="Enter new password">
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Secret URL Path (Security protection against scanners)</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="setting-secret-path" placeholder="e.g. secret123">
+                            </div>
+                            <span style="font-size:0.75rem; color:var(--text-dim); margin-top:0.25rem;">
+                                Example URL: <span class="mono" id="setting-url-preview">http://IP:44380/secret123</span>
+                            </span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">
+                            💾 Save Settings
+                        </button>
+                    </form>
                 </div>
-            </div>
+            </section>
+
         </main>
     </div>
 
-    <!-- MODALS -->
-    
-    <!-- Create/Edit User Modal -->
-    <div class="modal-backdrop" id="user-modal">
-        <div class="card modal">
+    <!-- MODAL: CREATE USER -->
+    <div class="modal-overlay" id="modal-create-user">
+        <div class="modal-box">
             <div class="modal-header">
-                <h3 id="user-modal-title">Create User</h3>
-                <button class="btn-icon" onclick="closeModal('user-modal')">✕</button>
+                <h3 class="modal-title">Create New User</h3>
+                <button class="btn-icon" onclick="closeModal('modal-create-user')">✕</button>
             </div>
-            <form id="user-form">
+            <form id="form-create-user">
                 <div class="input-group">
-                    <label class="label">Username</label>
-                    <input type="text" id="u-name" required pattern="[a-zA-Z0-9_-]+">
+                    <label>Username</label>
+                    <input type="text" id="create-username" placeholder="e.g. john_doe" required pattern="[a-zA-Z0-9_]+" title="Alphanumeric & underscore only">
                 </div>
                 <div class="input-group">
-                    <label class="label">Password</label>
-                    <div class="input-wrapper">
-                        <input type="text" id="u-pass" required>
-                        <button type="button" class="btn-icon suffix" onclick="document.getElementById('u-pass').value=generatePassword()">🎲</button>
+                    <label>Password</label>
+                    <div style="display:flex; gap:0.5rem;">
+                        <input type="text" id="create-password" placeholder="Password" required>
+                        <button type="button" class="btn btn-secondary" onclick="generateRandomPass('create-password')">🎲 Gen</button>
                     </div>
                 </div>
-                <div class="input-group">
-                    <label class="label">Duration (Days)</label>
-                    <input type="number" id="u-days" value="30" min="1" required>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
+                    <div class="input-group">
+                        <label>Duration (Days)</label>
+                        <input type="number" id="create-days" value="30" min="1" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Connection Limit</label>
+                        <input type="number" id="create-conn" value="1" min="1" required>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label class="label">Connection Limit</label>
-                    <input type="number" id="u-conn" value="1" min="0" required>
-                </div>
-                <div class="input-group">
-                    <label class="label">Total Bandwidth (GB, 0 = unl)</label>
-                    <input type="number" id="u-bw" value="0" min="0" step="0.1" required>
-                </div>
-                <div class="input-group">
-                    <label class="label">Daily Bandwidth (GB/day, 0 = unl)</label>
-                    <input type="number" id="u-daily-bw" value="0" min="0" step="0.1" required>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
+                    <div class="input-group">
+                        <label>Total Bandwidth (GB)</label>
+                        <input type="number" step="0.1" id="create-bw" value="0" min="0" placeholder="0 = Unlimited">
+                    </div>
+                    <div class="input-group">
+                        <label>Daily Limit (GB/day)</label>
+                        <input type="number" step="0.1" id="create-daily-bw" value="0" min="0" placeholder="0 = Unlimited">
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn" onclick="closeModal('user-modal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="btn-save-user">Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-create-user')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create User</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Bulk Create Modal -->
-    <div class="modal-backdrop" id="bulk-modal">
-        <div class="card modal">
+    <!-- MODAL: EDIT USER -->
+    <div class="modal-overlay" id="modal-edit-user">
+        <div class="modal-box">
             <div class="modal-header">
-                <h3>Bulk Create Users</h3>
-                <button class="btn-icon" onclick="closeModal('bulk-modal')">✕</button>
+                <h3 class="modal-title">Edit User Account</h3>
+                <button class="btn-icon" onclick="closeModal('modal-edit-user')">✕</button>
             </div>
-            <form id="bulk-form">
-                <div class="stats-grid" style="gap: 1rem; margin-bottom: 1rem;">
-                    <div class="input-group">
-                        <label class="label">Prefix</label>
-                        <input type="text" id="b-prefix" value="user" required>
-                    </div>
-                    <div class="input-group">
-                        <label class="label">Count (1-100)</label>
-                        <input type="number" id="b-count" value="10" min="1" max="100" required>
-                    </div>
-                </div>
-                <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.875rem;" id="bulk-preview">Will create: user1, user2 ... user10</p>
-                <div class="stats-grid" style="gap: 1rem;">
-                    <div class="input-group">
-                        <label class="label">Duration (Days)</label>
-                        <input type="number" id="b-days" value="30" min="1" required>
-                    </div>
-                    <div class="input-group">
-                        <label class="label">Connection Limit</label>
-                        <input type="number" id="b-conn" value="1" min="0" required>
-                    </div>
-                </div>
-                <div class="stats-grid" style="gap: 1rem;">
-                    <div class="input-group">
-                        <label class="label">Total BW (GB)</label>
-                        <input type="number" id="b-bw" value="0" min="0" step="0.1" required>
-                    </div>
-                    <div class="input-group">
-                        <label class="label">Daily BW (GB)</label>
-                        <input type="number" id="b-daily" value="0" min="0" step="0.1" required>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn" onclick="closeModal('bulk-modal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="btn-bulk">Create</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Bulk Success Modal -->
-    <div class="modal-backdrop" id="bulk-result-modal">
-        <div class="card modal">
-            <div class="modal-header">
-                <h3>Users Created Successfully!</h3>
-                <button class="btn-icon" onclick="closeModal('bulk-result-modal')">✕</button>
-            </div>
-            <div style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem; background: var(--bg-secondary); border-radius: 8px; padding: 1rem;">
-                <table style="width: 100%;">
-                    <thead><tr><th style="padding: 0.5rem;">Username</th><th style="padding: 0.5rem;">Password</th></tr></thead>
-                    <tbody id="bulk-result-tbody"></tbody>
-                </table>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="copyBulkResults()" style="width: 100%;">📋 Copy All</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Renew Modal -->
-    <div class="modal-backdrop" id="renew-modal">
-        <div class="card modal" style="max-width: 400px;">
-            <div class="modal-header">
-                <h3 id="renew-title">Renew User</h3>
-                <button class="btn-icon" onclick="closeModal('renew-modal')">✕</button>
-            </div>
-            <form id="renew-form">
-                <input type="hidden" id="r-uname">
-                <p class="text-muted" style="margin-bottom: 1rem;">Current Expiry: <span id="r-curr-exp" style="color: var(--text-primary);"></span></p>
+            <form id="form-edit-user">
+                <input type="hidden" id="edit-username-hidden">
                 <div class="input-group">
-                    <label class="label">Add Days</label>
-                    <input type="number" id="r-days" value="30" min="1" required>
+                    <label>Username</label>
+                    <input type="text" id="edit-username-disp" disabled style="opacity:0.6;">
+                </div>
+                <div class="input-group">
+                    <label>New Password (Leave blank to keep current)</label>
+                    <div style="display:flex; gap:0.5rem;">
+                        <input type="text" id="edit-password" placeholder="Enter new password">
+                        <button type="button" class="btn btn-secondary" onclick="generateRandomPass('edit-password')">🎲 Gen</button>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
+                    <div class="input-group">
+                        <label>Expiry Days</label>
+                        <input type="number" id="edit-days" min="1" placeholder="Keep current">
+                    </div>
+                    <div class="input-group">
+                        <label>Connection Limit</label>
+                        <input type="number" id="edit-conn" min="1" required>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
+                    <div class="input-group">
+                        <label>Total Bandwidth (GB)</label>
+                        <input type="number" step="0.1" id="edit-bw" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label>Daily Limit (GB/day)</label>
+                        <input type="number" step="0.1" id="edit-daily-bw" min="0">
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn" onclick="closeModal('renew-modal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Renew</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit-user')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Delete Modal -->
-    <div class="modal-backdrop" id="delete-modal">
-        <div class="card modal" style="max-width: 400px; text-align: center;">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
-            <h3>Delete User?</h3>
-            <p class="text-muted" style="margin-top: 0.5rem; margin-bottom: 2rem;">Are you sure you want to delete <strong id="del-uname" style="color: var(--text-primary);"></strong>? This cannot be undone.</p>
-            <div style="display: flex; gap: 1rem; justify-content: center;">
-                <button class="btn" onclick="closeModal('delete-modal')">Cancel</button>
-                <button class="btn btn-danger" id="btn-confirm-del">Delete</button>
+    <!-- MODAL: BULK CREATE -->
+    <div class="modal-overlay" id="modal-bulk-user">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title">Bulk Create Accounts</h3>
+                <button class="btn-icon" onclick="closeModal('modal-bulk-user')">✕</button>
             </div>
+            <form id="form-bulk-user">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
+                    <div class="input-group">
+                        <label>Username Prefix</label>
+                        <input type="text" id="bulk-prefix" value="user" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Count (1-50)</label>
+                        <input type="number" id="bulk-count" value="5" min="1" max="50" required>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
+                    <div class="input-group">
+                        <label>Duration (Days)</label>
+                        <input type="number" id="bulk-days" value="30" min="1" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Conn Limit</label>
+                        <input type="number" id="bulk-conn" value="1" min="1" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('modal-bulk-user')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Generate Accounts</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- JAVASCRIPT -->
+    <!-- JAVASCRIPT LOGIC -->
     <script>
-        // Data State
-        let allUsers = [];
-        let isEditMode = false;
-        let dashInterval, protoInterval;
-        let lastBulkResults = "";
+        // State
+        let cachedUsers = [];
 
-        // Core API Wrapper
+        // Toast Notification System
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            toast.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 3500);
+        }
+
+        // Base API Fetch Function
         async function api(method, path, body = null) {
             const opts = { method, credentials: 'same-origin', headers: {} };
             if (body) {
@@ -796,8 +746,8 @@
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Request failed');
                 return data;
-            } catch(e) {
-                throw e;
+            } catch (err) {
+                throw err;
             }
         }
 
@@ -805,530 +755,427 @@
         async function init() {
             try {
                 await api('GET', '/api/dashboard');
-                showMainView();
-                switchView('dashboard');
-                document.getElementById('info-url').value = window.location.origin;
-            } catch(e) {
+                showMainScreen();
+            } catch (e) {
                 showLoginScreen();
             }
         }
         document.addEventListener('DOMContentLoaded', init);
 
-        // View Management
+        // Navigation & Views
         function showLoginScreen() {
             document.getElementById('app-view').classList.add('hidden');
             document.getElementById('login-view').classList.remove('hidden');
-            clearInterval(dashInterval); clearInterval(protoInterval);
         }
-        
-        function showMainView() {
+
+        function showMainScreen() {
             document.getElementById('login-view').classList.add('hidden');
             document.getElementById('app-view').classList.remove('hidden');
-            fetchSettings();
+            loadDashboard();
+            loadSettings();
         }
 
-        function switchView(viewName) {
-            document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById(`page-${viewName}`).classList.add('active');
-            const navItem = document.querySelector(`.nav-item[data-target="${viewName}"]`);
-            if(navItem) navItem.classList.add('active');
-            
-            // Mobile sidebar auto-close
-            if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+        // Tab Switching
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const tab = item.getAttribute('data-tab');
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                document.querySelectorAll('.tab-page').forEach(p => p.classList.add('hidden'));
+                
+                item.classList.add('active');
+                document.getElementById(`tab-${tab}`).classList.remove('hidden');
 
-            // View-specific logic
-            clearInterval(dashInterval); clearInterval(protoInterval);
-            if(viewName === 'dashboard') {
-                loadDashboard();
-                dashInterval = setInterval(loadDashboard, 30000);
-            } else if(viewName === 'users') {
-                loadUsers();
-            } else if(viewName === 'protocols') {
-                loadProtocols();
-                protoInterval = setInterval(loadProtocols, 30000);
-            }
-        }
+                // Mobile drawer auto-close
+                document.getElementById('sidebar').classList.remove('active');
 
-        document.querySelectorAll('.nav-item').forEach(el => {
-            el.addEventListener('click', () => switchView(el.getAttribute('data-target')));
-        });
-        document.getElementById('btn-menu').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('sidebar-overlay').classList.toggle('active');
-        });
-        document.getElementById('sidebar-overlay').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('sidebar-overlay').classList.remove('active');
-        });
-        // Close sidebar on nav click (mobile)
-        document.querySelectorAll('.nav-item').forEach(el => {
-            el.addEventListener('click', () => {
-                document.getElementById('sidebar').classList.remove('open');
-                document.getElementById('sidebar-overlay').classList.remove('active');
+                if (tab === 'dashboard') loadDashboard();
+                else if (tab === 'users') loadUsers();
+                else if (tab === 'protocols') loadProtocols();
+                else if (tab === 'settings') loadSettings();
             });
         });
 
-        // Helpers
-        function formatBytes(bytes) {
-            if(!bytes) return '0 MB';
-            const gb = bytes / 1073741824;
-            return gb >= 1 ? gb.toFixed(2) + ' GB' : (bytes / 1048576).toFixed(1) + ' MB';
-        }
+        // Mobile Sidebar Toggle
+        document.getElementById('btn-mobile-toggle').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('active');
+        });
 
-        function daysUntil(dateStr) {
-            if(!dateStr) return 0;
-            const ms = new Date(dateStr) - new Date();
-            return Math.ceil(ms / 86400000);
-        }
-
-        function generatePassword(length = 10) {
-            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            return Array.from({length}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-        }
-
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️');
-            toast.innerHTML = `<span>${icon}</span><span style="font-size: 0.875rem; font-weight: 500;">${message}</span>`;
-            container.appendChild(toast);
-            
-            requestAnimationFrame(() => {
-                toast.classList.add('show');
-                setTimeout(() => {
-                    toast.classList.remove('show');
-                    setTimeout(() => toast.remove(), 300);
-                }, 3000);
-            });
-        }
-
-        function togglePassword(btn) {
-            const input = btn.previousElementSibling;
-            if(input.type === 'password') { input.type = 'text'; btn.textContent = '🙈'; }
-            else { input.type = 'password'; btn.textContent = '👁️'; }
-        }
-
-        async function copyText(text) {
-            try {
-                await navigator.clipboard.writeText(text);
-                showToast('Copied to clipboard', 'success');
-            } catch(e) {
-                showToast('Failed to copy', 'error');
-            }
-        }
-
-        // Modals
-        function openModal(id) { document.getElementById(id).classList.add('active'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
-        // Auth
+        // Login Form
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = e.target.querySelector('button');
-            const err = document.getElementById('login-error');
-            const user = document.getElementById('login-user').value;
-            const pass = document.getElementById('login-pass').value;
-            
-            btn.innerHTML = '<span class="spin">↻</span> Signing In...';
+            const btn = document.getElementById('btn-login-submit');
             btn.disabled = true;
-            err.textContent = '';
-            
+            btn.textContent = 'Signing In...';
             try {
-                await api('POST', '/api/login', { username: user, password: pass });
-                showMainView();
-                switchView('dashboard');
-                e.target.reset();
-            } catch(error) {
-                err.textContent = error.message;
-                document.querySelector('.login-card').classList.add('shake');
-                setTimeout(() => document.querySelector('.login-card').classList.remove('shake'), 400);
+                await api('POST', '/api/login', {
+                    username: document.getElementById('login-user').value,
+                    password: document.getElementById('login-pass').value
+                });
+                showToast('Signed in successfully', 'success');
+                showMainScreen();
+            } catch (err) {
+                showToast(err.message || 'Login failed', 'error');
             } finally {
-                btn.innerHTML = 'Sign In';
                 btn.disabled = false;
+                btn.textContent = 'Sign In to Panel';
             }
         });
 
+        // Logout
         document.getElementById('btn-logout').addEventListener('click', async () => {
             try { await api('POST', '/api/logout'); } catch(e){}
             showLoginScreen();
         });
 
-        // Dashboard
+        // Dashboard Handler
         async function loadDashboard() {
             try {
                 const data = await api('GET', '/api/dashboard');
-                
-                document.getElementById('stat-users').textContent = data.user_count;
-                document.getElementById('stat-online').textContent = data.online_sessions;
-                document.getElementById('stat-ram').textContent = data.ram_percent + '%';
-                document.getElementById('stat-ram-detail').textContent = `${data.ram_used_mb} MB / ${data.ram_total_mb} MB`;
-                document.getElementById('stat-cpu').textContent = data.cpu_load_1m;
-                
-                // RAM color
-                const ramCard = document.getElementById('card-ram');
-                if(data.ram_percent > 80) ramCard.style.setProperty('--warning', 'var(--danger)');
-                else if(data.ram_percent < 50) ramCard.style.setProperty('--warning', 'var(--success)');
-                else ramCard.style.setProperty('--warning', '#f59e0b');
+                document.getElementById('dash-total-users').textContent = data.user_count;
+                document.getElementById('dash-online-users').textContent = data.online_sessions;
+                document.getElementById('dash-ram-percent').textContent = data.ram_percent + '%';
+                document.getElementById('dash-ram-detail').textContent = `${data.ram_used_mb} / ${data.ram_total_mb} MB`;
+                document.getElementById('dash-cpu-load').textContent = data.cpu_load_1m;
 
                 document.getElementById('server-ip').textContent = data.server_ip;
                 document.getElementById('server-os').textContent = data.os_name;
                 document.getElementById('server-uptime').textContent = data.uptime;
 
-                renderProtocols(data.protocols, 'dash-protocols');
-                
-                const now = new Date();
-                document.getElementById('dash-updated').textContent = `Updated ${now.toLocaleTimeString()}`;
-            } catch(e) {
-                if(e.message !== 'Session expired') showToast('Failed to load dashboard', 'error');
+                renderProtocols(data.protocols, 'dash-protocols-grid');
+            } catch (e) {
+                if (e.message !== 'Session expired') showToast('Failed to update metrics', 'error');
             }
         }
 
-        // Protocols
+        // Users Handler
+        async function loadUsers() {
+            try {
+                const data = await api('GET', '/api/users');
+                cachedUsers = data.users || [];
+                renderUsers(cachedUsers);
+            } catch (e) {
+                if (e.message !== 'Session expired') showToast('Failed to load users', 'error');
+            }
+        }
+
+        function filterUsers() {
+            const query = document.getElementById('user-search-input').value.toLowerCase();
+            const filtered = cachedUsers.filter(u => u.username.toLowerCase().includes(query));
+            renderUsers(filtered);
+        }
+
+        function renderUsers(users) {
+            const tbody = document.getElementById('users-table-body');
+            const mobileGrid = document.getElementById('users-mobile-grid');
+            tbody.innerHTML = '';
+            mobileGrid.innerHTML = '';
+
+            if (users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-dim); padding:2rem;">No user accounts found.</td></tr>`;
+                mobileGrid.innerHTML = `<div style="text-align:center; color:var(--text-dim); padding:2rem;">No user accounts found.</div>`;
+                return;
+            }
+
+            users.forEach(u => {
+                // Status Badge
+                let statusBadge = '<span class="badge badge-green">🟢 Active</span>';
+                if (u.is_expired) statusBadge = '<span class="badge badge-red">⏰ Expired</span>';
+                else if (u.is_locked) statusBadge = '<span class="badge badge-yellow">🔒 Locked</span>';
+
+                const totalBwStr = u.bandwidth_gb > 0 ? `${formatBytes(u.total_used_bytes)} / ${u.bandwidth_gb} GB` : `${formatBytes(u.total_used_bytes)} / ∞`;
+                const dailyBwStr = u.daily_bandwidth_gb > 0 ? `${formatBytes(u.daily_used_bytes)} / ${u.daily_bandwidth_gb} GB` : `${formatBytes(u.daily_used_bytes)} / ∞`;
+
+                // Desktop Row
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="mono" style="font-weight:700;">${escapeHtml(u.username)}</td>
+                    <td>
+                        <span class="mono" id="pwd-${u.username}">••••••••</span>
+                        <button class="btn-icon" style="width:24px; height:24px; font-size:0.7rem;" onclick="togglePwdVisibility('${u.username}', '${escapeHtml(u.password)}')">👁️</button>
+                    </td>
+                    <td>${u.expire_date}</td>
+                    <td><span style="color:${u.online_sessions > 0 ? 'var(--success)' : 'inherit'}; font-weight:700;">${u.online_sessions}</span> / ${u.conn_limit}</td>
+                    <td>${totalBwStr}</td>
+                    <td>${dailyBwStr}</td>
+                    <td>${statusBadge}</td>
+                    <td style="text-align:right;">
+                        <div style="display:inline-flex; gap:0.35rem;">
+                            <button class="btn-icon" title="Copy Password" onclick="copyText('${escapeHtml(u.password)}')">📋</button>
+                            <button class="btn-icon" title="Edit User" onclick="openEditUserModal('${escapeHtml(u.username)}', ${u.conn_limit}, ${u.bandwidth_gb}, ${u.daily_bandwidth_gb})">✏️</button>
+                            <button class="btn-icon" title="Renew Days" onclick="renewUser('${escapeHtml(u.username)}')">🔄</button>
+                            ${u.is_locked ? 
+                                `<button class="btn-icon" title="Unlock" onclick="toggleLock('${escapeHtml(u.username)}', false)">🔓</button>` : 
+                                `<button class="btn-icon" title="Lock" onclick="toggleLock('${escapeHtml(u.username)}', true)">🔒</button>`
+                            }
+                            <button class="btn-icon" title="Delete User" style="color:var(--danger);" onclick="deleteUser('${escapeHtml(u.username)}')">🗑️</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+
+                // Mobile Card
+                const card = document.createElement('div');
+                card.className = 'glass-card user-mobile-card';
+                card.innerHTML = `
+                    <div class="user-card-header">
+                        <span class="user-card-title mono">${escapeHtml(u.username)}</span>
+                        ${statusBadge}
+                    </div>
+                    <div class="user-card-meta">
+                        <div class="meta-box">
+                            <span style="color:var(--text-dim);">Password:</span>
+                            <span class="mono" id="mpwd-${u.username}">••••••••</span>
+                            <span style="cursor:pointer;" onclick="togglePwdVisibility('mpwd-${u.username}', '${escapeHtml(u.password)}')">👁️</span>
+                        </div>
+                        <div class="meta-box">
+                            <span style="color:var(--text-dim);">Expiry:</span> ${u.expire_date}
+                        </div>
+                        <div class="meta-box">
+                            <span style="color:var(--text-dim);">Sessions:</span> <b>${u.online_sessions} / ${u.conn_limit}</b>
+                        </div>
+                        <div class="meta-box">
+                            <span style="color:var(--text-dim);">BW:</span> ${totalBwStr}
+                        </div>
+                    </div>
+                    <div class="user-card-actions">
+                        <button class="btn btn-secondary" style="flex:1;" onclick="copyText('${escapeHtml(u.password)}')">📋 Password</button>
+                        <button class="btn btn-secondary" style="flex:1;" onclick="openEditUserModal('${escapeHtml(u.username)}', ${u.conn_limit}, ${u.bandwidth_gb}, ${u.daily_bandwidth_gb})">✏️ Edit</button>
+                        <button class="btn btn-danger" onclick="deleteUser('${escapeHtml(u.username)}')">🗑️</button>
+                    </div>
+                `;
+                mobileGrid.appendChild(card);
+            });
+        }
+
+        // Protocol Renderer
         async function loadProtocols() {
             try {
                 const data = await api('GET', '/api/protocols');
-                renderProtocols(data, 'page-protocol-grid');
-                const now = new Date();
-                document.getElementById('proto-updated').textContent = `Updated ${now.toLocaleTimeString()}`;
-            } catch(e) {
-                if(e.message !== 'Session expired') showToast('Failed to load protocols', 'error');
+                renderProtocols(data, 'protocols-full-grid');
+            } catch (e) {
+                if (e.message !== 'Session expired') showToast('Failed to load protocols', 'error');
             }
         }
 
         function renderProtocols(protocols, containerId) {
             const container = document.getElementById(containerId);
             container.innerHTML = '';
-            
             protocols.forEach(p => {
-                let statusClass = 'badge-gray';
-                let statusText = '⚫ Not Installed';
-                let borderColor = 'rgba(71, 85, 105, 0.5)';
-                let btnHtml = `<button class="btn" disabled>Install Needed</button>`;
-
-                if(p.installed) {
-                    if(p.running) {
-                        statusClass = 'badge-green'; statusText = '🟢 Running';
-                        borderColor = 'var(--success)';
-                    } else {
-                        statusClass = 'badge-red'; statusText = '🔴 Stopped';
-                        borderColor = 'var(--danger)';
-                    }
-                    btnHtml = `<button class="btn" onclick="restartProtocol('${p.service}')"><span>🔄</span> Restart</button>`;
+                let badge = '<span class="badge badge-gray">⚪ Not Installed</span>';
+                if (p.installed) {
+                    badge = p.running ? '<span class="badge badge-green">🟢 Running</span>' : '<span class="badge badge-red">🔴 Stopped</span>';
                 }
-
-                container.innerHTML += `
-                    <div class="card protocol-card" style="border-top: 4px solid ${borderColor}">
-                        <div class="protocol-header">
-                            <h3 style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span style="font-size: 1.5rem;">📡</span> ${p.name}
-                            </h3>
-                            <span class="badge ${statusClass}">${statusText}</span>
-                        </div>
-                        <div class="text-muted" style="font-size: 0.875rem;">Port: <strong style="color: var(--text-primary);">${p.port || 'N/A'}</strong></div>
-                        ${btnHtml}
+                const div = document.createElement('div');
+                div.className = 'glass-card protocol-card';
+                div.innerHTML = `
+                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <span style="font-weight:700; font-size:1.05rem;">${p.name}</span>
+                        ${badge}
                     </div>
+                    <div style="font-size:0.85rem; color:var(--text-dim);">
+                        Port: <span class="mono" style="color:var(--text-main); font-weight:600;">${p.port}</span>
+                    </div>
+                    ${p.installed ? `<button class="btn btn-secondary" style="width:100%;" onclick="restartProtocol('${p.service}')">🔄 Restart Service</button>` : ''}
                 `;
+                container.appendChild(div);
             });
         }
 
         async function restartProtocol(service) {
             try {
-                showToast(`Restarting ${service}...`, 'info');
                 await api('POST', `/api/protocols/${service}/restart`);
-                showToast(`${service} restarted successfully`);
-                if(document.getElementById('page-dashboard').classList.contains('active')) loadDashboard();
-                if(document.getElementById('page-protocols').classList.contains('active')) loadProtocols();
-            } catch(e) {
-                showToast(e.message, 'error');
+                showToast(`Restarted ${service}`, 'success');
+                loadProtocols();
+            } catch (e) {
+                showToast(`Failed to restart ${service}`, 'error');
             }
         }
 
-        // Users
-        async function loadUsers() {
+        // User Actions (Lock, Unlock, Delete, Renew)
+        async function toggleLock(username, lock) {
             try {
-                const data = await api('GET', '/api/users');
-                allUsers = data.users;
-                renderUsers(allUsers);
-            } catch(e) {
-                if(e.message !== 'Session expired') showToast('Failed to load users', 'error');
-            }
-        }
-
-        document.getElementById('search-users').addEventListener('input', (e) => {
-            const q = e.target.value.toLowerCase();
-            const filtered = allUsers.filter(u => u.username.toLowerCase().includes(q));
-            renderUsers(filtered);
-        });
-
-        function renderUsers(users) {
-            const tbody = document.getElementById('users-tbody');
-            if(users.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
-                    <div>No users found. Create one to get started.</div>
-                </td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = users.map(u => {
-                const isOnline = u.is_online;
-                const sessionsHtml = `<span style="color: ${isOnline ? 'var(--success)' : 'inherit'}">${u.online_sessions}</span> / ${u.conn_limit}`;
-                
-                const dLeft = daysUntil(u.expire_date);
-                const expiryHtml = `<div>${u.expire_date}</div><div class="text-muted" style="font-size: 0.75rem;">${dLeft > 0 ? dLeft+' days left' : 'Expired'}</div>`;
-                
-                let bwHtml = '-';
-                if(u.bandwidth_gb > 0) {
-                    const pct = Math.min(100, (u.total_used_bytes / (u.bandwidth_gb * 1073741824)) * 100);
-                    bwHtml = `
-                        <div>${formatBytes(u.total_used_bytes)} / ${u.bandwidth_gb} GB</div>
-                        <div class="progress-bar"><div class="progress-fill" style="width: ${pct}%; ${pct>90?'background:var(--danger)':''}"></div></div>
-                    `;
-                } else {
-                    bwHtml = `<div>${formatBytes(u.total_used_bytes)} / ∞</div>`;
-                }
-                
-                if(u.daily_bandwidth_gb > 0) {
-                    bwHtml += `<div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">Daily: ${formatBytes(u.daily_used_bytes)} / ${u.daily_bandwidth_gb} GB</div>`;
-                }
-
-                let statusBadge = '';
-                if(u.is_locked) statusBadge = '<span class="badge badge-yellow">🔒 Locked</span>';
-                else if(u.is_expired) statusBadge = '<span class="badge badge-red">🔴 Expired</span>';
-                else if(u.bandwidth_gb > 0 && u.total_used_bytes >= (u.bandwidth_gb * 1073741824)) statusBadge = '<span class="badge badge-red">⛔ BW Exceeded</span>';
-                else statusBadge = '<span class="badge badge-green">🟢 Active</span>';
-
-                return `
-                    <tr>
-                        <td style="font-weight: 500;">${u.username}</td>
-                        <td>
-                            <div class="pwd-cell">
-                                <input type="password" value="${u.password}" readonly style="width: 100px; padding: 0.25rem 0.5rem; background: transparent; border: none; font-family: monospace;">
-                                <button class="btn-icon" style="padding: 0.25rem;" onclick="togglePassword(this)">👁️</button>
-                                <button class="btn-icon" style="padding: 0.25rem;" onclick="copyText('${u.password}')">📋</button>
-                            </div>
-                        </td>
-                        <td>${expiryHtml}</td>
-                        <td>${sessionsHtml}</td>
-                        <td>${bwHtml}</td>
-                        <td>${statusBadge}</td>
-                        <td>
-                            <div class="td-actions">
-                                <button class="btn-icon" title="Edit" onclick="editUser('${u.username}')">✏️</button>
-                                <button class="btn-icon" title="Renew" onclick="openRenew('${u.username}', '${u.expire_date}')">🔄</button>
-                                <button class="btn-icon" title="${u.is_locked ? 'Unlock' : 'Lock'}" onclick="toggleLock('${u.username}', ${u.is_locked})">${u.is_locked ? '🔓' : '🔒'}</button>
-                                <button class="btn-icon" title="Reset Bandwidth" onclick="resetBW('${u.username}')">📊</button>
-                                <button class="btn-icon" style="color: var(--danger)" title="Delete" onclick="openDelete('${u.username}')">🗑️</button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        // User Actions
-        document.querySelector('.btn-primary[onclick="openModal(\'user-modal\')"]').addEventListener('click', () => {
-            isEditMode = false;
-            document.getElementById('user-modal-title').textContent = 'Create User';
-            document.getElementById('u-name').disabled = false;
-            document.getElementById('user-form').reset();
-            document.getElementById('u-pass').value = generatePassword();
-        });
-
-        window.editUser = function(username) {
-            const u = allUsers.find(x => x.username === username);
-            if(!u) return;
-            isEditMode = true;
-            document.getElementById('user-modal-title').textContent = 'Edit User';
-            document.getElementById('u-name').value = u.username;
-            document.getElementById('u-name').disabled = true;
-            document.getElementById('u-pass').value = u.password;
-            document.getElementById('u-days').value = daysUntil(u.expire_date) > 0 ? daysUntil(u.expire_date) : 30;
-            document.getElementById('u-conn').value = u.conn_limit;
-            document.getElementById('u-bw').value = u.bandwidth_gb;
-            document.getElementById('u-daily-bw').value = u.daily_bandwidth_gb;
-            openModal('user-modal');
-        };
-
-        document.getElementById('user-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btn-save-user');
-            btn.innerHTML = '<span class="spin">↻</span> Saving...';
-            btn.disabled = true;
-
-            const username = document.getElementById('u-name').value;
-            const payload = {
-                password: document.getElementById('u-pass').value,
-                days: parseInt(document.getElementById('u-days').value),
-                conn_limit: parseInt(document.getElementById('u-conn').value),
-                bandwidth_gb: parseFloat(document.getElementById('u-bw').value),
-                daily_bandwidth_gb: parseFloat(document.getElementById('u-daily-bw').value)
-            };
-
-            try {
-                if(isEditMode) {
-                    await api('PUT', `/api/users/${username}`, payload);
-                    showToast('User updated successfully');
-                } else {
-                    payload.username = username;
-                    await api('POST', '/api/users', payload);
-                    showToast('User created successfully');
-                }
-                closeModal('user-modal');
-                loadUsers();
-            } catch(error) {
-                showToast(error.message, 'error');
-            } finally {
-                btn.innerHTML = 'Save';
-                btn.disabled = false;
-            }
-        });
-
-        // Bulk Create
-        document.getElementById('b-prefix').addEventListener('input', updateBulkPreview);
-        document.getElementById('b-count').addEventListener('input', updateBulkPreview);
-        function updateBulkPreview() {
-            const p = document.getElementById('b-prefix').value;
-            const c = parseInt(document.getElementById('b-count').value) || 0;
-            if(c > 0 && p) {
-                document.getElementById('bulk-preview').textContent = `Will create: ${p}1, ${p}2 ... ${p}${c}`;
-            } else {
-                document.getElementById('bulk-preview').textContent = '';
-            }
-        }
-        document.getElementById('bulk-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btn-bulk');
-            btn.innerHTML = '<span class="spin">↻</span> Creating...';
-            btn.disabled = true;
-
-            const payload = {
-                prefix: document.getElementById('b-prefix').value,
-                count: parseInt(document.getElementById('b-count').value),
-                days: parseInt(document.getElementById('b-days').value),
-                conn_limit: parseInt(document.getElementById('b-conn').value),
-                bandwidth_gb: parseFloat(document.getElementById('b-bw').value),
-                daily_bandwidth_gb: parseFloat(document.getElementById('b-daily').value)
-            };
-
-            try {
-                const res = await api('POST', '/api/users/bulk', payload);
-                closeModal('bulk-modal');
-                
-                // Show results
-                const tbody = document.getElementById('bulk-result-tbody');
-                tbody.innerHTML = '';
-                lastBulkResults = "";
-                res.forEach(u => {
-                    tbody.innerHTML += `<tr><td style="padding: 0.5rem; border-bottom: 1px solid var(--border-subtle);">${u.username}</td><td style="padding: 0.5rem; border-bottom: 1px solid var(--border-subtle); font-family: monospace;">${u.password}</td></tr>`;
-                    lastBulkResults += `${u.username}:${u.password}\n`;
-                });
-                openModal('bulk-result-modal');
-                loadUsers();
-            } catch(error) {
-                showToast(error.message, 'error');
-            } finally {
-                btn.innerHTML = 'Create';
-                btn.disabled = false;
-            }
-        });
-
-        window.copyBulkResults = function() {
-            copyText(lastBulkResults);
-        }
-
-        // Renew
-        window.openRenew = function(username, currentExp) {
-            document.getElementById('r-uname').value = username;
-            document.getElementById('r-curr-exp').textContent = currentExp;
-            document.getElementById('r-days').value = 30;
-            openModal('renew-modal');
-        };
-        document.getElementById('renew-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const uname = document.getElementById('r-uname').value;
-            const days = parseInt(document.getElementById('r-days').value);
-            try {
-                await api('POST', `/api/users/${uname}/renew`, { days });
-                showToast('User renewed');
-                closeModal('renew-modal');
-                loadUsers();
-            } catch(error) { showToast(error.message, 'error'); }
-        });
-
-        // Lock/Unlock
-        window.toggleLock = async function(username, isLocked) {
-            try {
-                const action = isLocked ? 'unlock' : 'lock';
+                const action = lock ? 'lock' : 'unlock';
                 await api('POST', `/api/users/${username}/${action}`);
-                showToast(`User ${action}ed successfully`);
+                showToast(`User ${username} ${action}ed`, 'success');
                 loadUsers();
-            } catch(error) { showToast(error.message, 'error'); }
-        };
+            } catch (e) {
+                showToast(`Action failed: ${e.message}`, 'error');
+            }
+        }
 
-        // Reset BW
-        window.resetBW = async function(username) {
-            if(!confirm(`Reset bandwidth for ${username}?`)) return;
+        async function deleteUser(username) {
+            if (!confirm(`Are you sure you want to delete user "${username}"?`)) return;
             try {
-                await api('POST', `/api/users/${username}/reset-bandwidth`);
-                showToast('Bandwidth reset successfully');
+                await api('DELETE', `/api/users/${username}`);
+                showToast(`Deleted ${username}`, 'success');
                 loadUsers();
-            } catch(error) { showToast(error.message, 'error'); }
-        };
+            } catch (e) {
+                showToast(`Failed to delete user`, 'error');
+            }
+        }
 
-        // Delete
-        window.openDelete = function(username) {
-            document.getElementById('del-uname').textContent = username;
-            document.getElementById('btn-confirm-del').onclick = async () => {
-                try {
-                    await api('DELETE', `/api/users/${username}`);
-                    showToast('User deleted');
-                    closeModal('delete-modal');
-                    loadUsers();
-                } catch(error) { showToast(error.message, 'error'); }
-            };
-            openModal('delete-modal');
-        };
+        async function renewUser(username) {
+            const days = prompt(`Renew ${username} for how many additional days?`, '30');
+            if (!days || isNaN(days)) return;
+            try {
+                await api('POST', `/api/users/${username}/renew`, { days: parseInt(days) });
+                showToast(`Renewed ${username} for ${days} days`, 'success');
+                loadUsers();
+            } catch (e) {
+                showToast(`Failed to renew user`, 'error');
+            }
+        }
 
-        // Settings
-        async function fetchSettings() {
+        // Settings Handler
+        async function loadSettings() {
             try {
                 const data = await api('GET', '/api/settings');
-                document.getElementById('set-user').value = data.username;
-            } catch(e) {}
+                document.getElementById('setting-current-user').value = data.username || '';
+                document.getElementById('setting-secret-path').value = data.secret || '';
+                updateUrlPreview(data.secret || '');
+            } catch (e) {}
         }
+
+        document.getElementById('setting-secret-path').addEventListener('input', (e) => {
+            updateUrlPreview(e.target.value);
+        });
+
+        function updateUrlPreview(secret) {
+            const host = window.location.host;
+            const path = secret.trim().replace(/^\/+/, '');
+            const preview = path ? `http://${host}/${path}` : `http://${host}/`;
+            document.getElementById('setting-url-preview').textContent = preview;
+        }
+
         document.getElementById('settings-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = e.target.querySelector('button');
-            const currentPass = document.getElementById('set-curr-pass').value;
-            const newUser = document.getElementById('set-new-user').value;
-            const newPass = document.getElementById('set-new-pass').value;
-
-            btn.innerHTML = '<span class="spin">↻</span> Updating...';
-            btn.disabled = true;
+            const currPass = document.getElementById('setting-curr-pass').value;
+            const newUser = document.getElementById('setting-new-user').value;
+            const newPass = document.getElementById('setting-new-pass').value;
+            const newSecret = document.getElementById('setting-secret-path').value;
 
             try {
-                await api('PUT', '/api/settings', {
-                    current_password: currentPass,
+                const res = await api('PUT', '/api/settings', {
+                    current_password: currPass,
                     new_username: newUser,
-                    new_password: newPass
+                    new_password: newPass,
+                    new_secret: newSecret
                 });
-                showToast('Credentials updated. Please log in again.');
-                e.target.reset();
-                setTimeout(() => {
-                    api('POST', '/api/logout').finally(() => {
-                        window.location.reload();
-                    });
-                }, 2000);
-            } catch(error) {
-                showToast(error.message, 'error');
-                btn.innerHTML = 'Update Credentials';
-                btn.disabled = false;
+                showToast('Settings saved successfully', 'success');
+                if (newSecret) {
+                    const host = window.location.host;
+                    const newUrl = `http://${host}/${newSecret.replace(/^\/+/, '')}`;
+                    alert(`Secret URL updated!\nNew Panel Access URL:\n${newUrl}`);
+                    window.location.href = newUrl;
+                } else {
+                    loadSettings();
+                }
+            } catch (err) {
+                showToast(err.message || 'Failed to save settings', 'error');
             }
         });
+
+        // Modals
+        function openCreateUserModal() { document.getElementById('modal-create-user').classList.add('active'); }
+        function openBulkCreateModal() { document.getElementById('modal-bulk-user').classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        function openEditUserModal(un, conn, bw, dbw) {
+            document.getElementById('edit-username-hidden').value = un;
+            document.getElementById('edit-username-disp').value = un;
+            document.getElementById('edit-conn').value = conn;
+            document.getElementById('edit-bw').value = bw;
+            document.getElementById('edit-daily-bw').value = dbw;
+            document.getElementById('modal-edit-user').classList.add('active');
+        }
+
+        document.getElementById('form-create-user').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                await api('POST', '/api/users', {
+                    username: document.getElementById('create-username').value,
+                    password: document.getElementById('create-password').value,
+                    days: parseInt(document.getElementById('create-days').value),
+                    conn_limit: parseInt(document.getElementById('create-conn').value),
+                    bandwidth_gb: parseFloat(document.getElementById('create-bw').value || 0),
+                    daily_bandwidth_gb: parseFloat(document.getElementById('create-daily-bw').value || 0)
+                });
+                showToast('User created successfully', 'success');
+                closeModal('modal-create-user');
+                loadUsers();
+            } catch (err) {
+                showToast(err.message || 'Failed to create user', 'error');
+            }
+        });
+
+        document.getElementById('form-edit-user').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const un = document.getElementById('edit-username-hidden').value;
+            const body = {
+                conn_limit: parseInt(document.getElementById('edit-conn').value),
+                bandwidth_gb: parseFloat(document.getElementById('edit-bw').value || 0),
+                daily_bandwidth_gb: parseFloat(document.getElementById('edit-daily-bw').value || 0)
+            };
+            const pwd = document.getElementById('edit-password').value;
+            if (pwd) body.password = pwd;
+            const days = document.getElementById('edit-days').value;
+            if (days) body.days = parseInt(days);
+
+            try {
+                await api('PUT', `/api/users/${un}`, body);
+                showToast('User updated successfully', 'success');
+                closeModal('modal-edit-user');
+                loadUsers();
+            } catch (err) {
+                showToast(err.message || 'Failed to update user', 'error');
+            }
+        });
+
+        document.getElementById('form-bulk-user').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const res = await api('POST', '/api/users/bulk', {
+                    prefix: document.getElementById('bulk-prefix').value,
+                    count: parseInt(document.getElementById('bulk-count').value),
+                    days: parseInt(document.getElementById('bulk-days').value),
+                    conn_limit: parseInt(document.getElementById('bulk-conn').value)
+                });
+                showToast(`Created ${res.users ? res.users.length : ''} users`, 'success');
+                closeModal('modal-bulk-user');
+                loadUsers();
+            } catch (err) {
+                showToast(err.message || 'Bulk creation failed', 'error');
+            }
+        });
+
+        // Helpers
+        function generateRandomPass(elementId) {
+            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let res = '';
+            for(let i=0; i<10; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+            document.getElementById(elementId).value = res;
+        }
+
+        function togglePwdVisibility(id, pass) {
+            const el = document.getElementById(id);
+            if (el.textContent === '••••••••') el.textContent = pass;
+            else el.textContent = '••••••••';
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text);
+            showToast('Copied to clipboard', 'info');
+        }
+
+        function formatBytes(bytes) {
+            if (!bytes || bytes === 0) return '0 MB';
+            const gb = bytes / 1073741824;
+            return gb >= 1 ? gb.toFixed(2) + ' GB' : (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
     </script>
 </body>
 </html>

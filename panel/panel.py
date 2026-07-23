@@ -102,6 +102,7 @@ def get_online_sessions(target_user=None):
     if target_user and target_user not in managed_users:
         return 0
     
+    user_pids = {}
     # Use ps to count user-owned sshd/sshd-session processes.
     # This avoids double-counting from loginuid (which also catches root-owned privsep sshd).
     try:
@@ -139,7 +140,7 @@ def read_file_int(path, default=0):
     return default
 
 def get_panel_creds():
-    creds = {"PANEL_USER": "", "PANEL_PASS_HASH": "", "PANEL_PASS_PLAIN": ""}
+    creds = {"PANEL_USER": "", "PANEL_PASS_HASH": "", "PANEL_PASS_PLAIN": "", "PANEL_SECRET": ""}
     if os.path.exists(PANEL_CONF):
         with open(PANEL_CONF, "r") as f:
             for line in f:
@@ -151,11 +152,13 @@ def get_panel_creds():
                         creds[k] = v
     return creds
 
-def write_panel_creds(user, pass_plain):
+def write_panel_creds(user, pass_plain, secret=None):
     creds = get_panel_creds()
     creds["PANEL_USER"] = user
     creds["PANEL_PASS_PLAIN"] = pass_plain
     creds["PANEL_PASS_HASH"] = hashlib.sha256(pass_plain.encode()).hexdigest()
+    if secret is not None:
+        creds["PANEL_SECRET"] = secret.strip().lstrip('/')
     
     os.makedirs(os.path.dirname(PANEL_CONF), exist_ok=True)
     with open(PANEL_CONF, "w") as f:
@@ -200,41 +203,63 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(data).encode('utf-8'))
 
     def do_GET(self):
-        parsed_path = urlparse(self.path)
-        path = parsed_path.path
-
-        if path == "/":
-            if os.path.exists(PANEL_HTML):
-                with open(PANEL_HTML, "rb") as f:
-                    content = f.read()
-                self.send_response(200)
-                self.send_header('Content-Type', 'text/html')
-                self.end_headers()
-                self.wfile.write(content)
+        try:
+            parsed_path = urlparse(self.path)
+            raw_path = parsed_path.path.strip()
+            creds = get_panel_creds()
+            secret = creds.get("PANEL_SECRET", "").strip().lstrip('/')
+            
+            # Check secret path matching for HTML serving
+            is_html_request = False
+            if not secret:
+                if raw_path in ("/", "/index.html"):
+                    is_html_request = True
             else:
+                valid_paths = (f"/{secret}", f"/{secret}/", f"/{secret}/index.html")
+                if raw_path in valid_paths:
+                    is_html_request = True
+
+            if is_html_request:
+                if os.path.exists(PANEL_HTML):
+                    with open(PANEL_HTML, "rb") as f:
+                        content = f.read()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'text/html')
+                    self.end_headers()
+                    self.wfile.write(content)
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+                    self.wfile.write(b"HTML not found")
+                return
+
+            # Clean API path if prefixed with secret
+            api_path = raw_path
+            if secret and api_path.startswith(f"/{secret}/api/"):
+                api_path = api_path[len(secret) + 1:]
+            
+            if not api_path.startswith("/api/"):
                 self.send_response(404)
                 self.end_headers()
-                self.wfile.write(b"HTML not found")
-            return
+                self.wfile.write(b"Not Found")
+                return
 
-        if not path.startswith("/api/"):
-            self.send_response(404)
-            self.end_headers()
-            return
+            if not check_session(self.headers):
+                return self.send_json(401, {"error": "Unauthorized"})
 
-        if not check_session(self.headers):
-            return self.send_json(401, {"error": "Unauthorized"})
-
-        if path == "/api/dashboard":
-            self.handle_get_dashboard()
-        elif path == "/api/users":
-            self.handle_get_users()
-        elif path == "/api/protocols":
-            self.handle_get_protocols()
-        elif path == "/api/settings":
-            self.handle_get_settings()
-        else:
-            self.send_json(404, {"error": "Not Found"})
+            if api_path == "/api/dashboard":
+                self.handle_get_dashboard()
+            elif api_path == "/api/users":
+                self.handle_get_users()
+            elif api_path == "/api/protocols":
+                self.handle_get_protocols()
+            elif api_path == "/api/settings":
+                self.handle_get_settings()
+            else:
+                self.send_json(404, {"error": "Not Found"})
+        except Exception as e:
+            print(f"Error handling GET {self.path}: {e}", file=sys.stderr)
+            self.send_json(500, {"error": str(e)})
 
     def do_POST(self):
         parsed_path = urlparse(self.path)
@@ -658,20 +683,24 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
 
     def handle_get_settings(self):
         creds = get_panel_creds()
-        self.send_json(200, {"username": creds.get("PANEL_USER", "")})
+        self.send_json(200, {
+            "username": creds.get("PANEL_USER", ""),
+            "secret": creds.get("PANEL_SECRET", "")
+        })
 
     def handle_put_settings(self, body):
         creds = get_panel_creds()
         curr_pwd = body.get("current_password", "")
-        new_user = body.get("new_username", "")
-        new_pwd = body.get("new_password", "")
+        new_user = body.get("new_username", "").strip() or creds.get("PANEL_USER", "")
+        new_pwd = body.get("new_password", "").strip() or creds.get("PANEL_PASS_PLAIN", "")
+        new_secret = body.get("new_secret", "").strip().lstrip('/')
         
         curr_hash = hashlib.sha256(curr_pwd.encode()).hexdigest()
         if curr_hash != creds.get("PANEL_PASS_HASH"):
             return self.send_json(401, {"error": "Invalid current password"})
             
-        write_panel_creds(new_user, new_pwd)
-        self.send_json(200, {"success": True})
+        write_panel_creds(new_user, new_pwd, secret=new_secret)
+        self.send_json(200, {"success": True, "secret": new_secret})
 
 def main():
     os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)

@@ -4294,13 +4294,15 @@ install_web_panel() {
     check_and_free_ports "$PANEL_PORT" || return
     check_and_open_firewall_port "$PANEL_PORT" tcp || return
     
-    # Generate random credentials
+    # Generate random credentials and secret URL path
     local panel_user
     panel_user=$(tr -dc 'a-z' < /dev/urandom | head -c 4)$(tr -dc '0-9' < /dev/urandom | head -c 4)
     local panel_pass
     panel_pass=$(tr -dc 'A-Za-z0-9@#$' < /dev/urandom | head -c 16)
     local panel_pass_hash
     panel_pass_hash=$(echo -n "$panel_pass" | sha256sum | awk '{print $1}')
+    local panel_secret
+    panel_secret="panel_$(tr -dc 'a-z0-9' < /dev/urandom | head -c 8)"
     
     echo -e "${C_BLUE}📥 Downloading panel files...${C_RESET}"
     mkdir -p "$PANEL_HTML_DIR"
@@ -4326,6 +4328,7 @@ install_web_panel() {
 PANEL_USER="$panel_user"
 PANEL_PASS_HASH="$panel_pass_hash"
 PANEL_PASS_PLAIN="$panel_pass"
+PANEL_SECRET="$panel_secret"
 PEOF
     chmod 600 "$PANEL_CONF"
     
@@ -4364,9 +4367,10 @@ SEOF
         echo -e "${C_GREEN}=====================================================${C_RESET}"
         echo -e "${C_GREEN}     ✅ Web Control Panel Installed Successfully!     ${C_RESET}"
         echo -e "${C_GREEN}=====================================================${C_RESET}"
-        echo -e "\n${C_CYAN}  🌐 Panel URL:${C_RESET}    ${C_YELLOW}http://${server_ip}:${PANEL_PORT}${C_RESET}"
+        echo -e "\n${C_CYAN}  🌐 Panel URL:${C_RESET}    ${C_YELLOW}http://${server_ip}:${PANEL_PORT}/${panel_secret}${C_RESET}"
         echo -e "${C_CYAN}  👤 Username:${C_RESET}     ${C_YELLOW}${panel_user}${C_RESET}"
         echo -e "${C_CYAN}  🔑 Password:${C_RESET}     ${C_YELLOW}${panel_pass}${C_RESET}"
+        echo -e "${C_CYAN}  🔐 Secret Path:${C_RESET}   ${C_YELLOW}/${panel_secret}${C_RESET}"
         echo -e "\n${C_DIM}  Save these credentials! You can view them later from option [21] > [3].${C_RESET}"
     else
         echo -e "\n${C_RED}❌ Panel service failed to start. Checking logs:${C_RESET}"
@@ -4410,15 +4414,22 @@ show_panel_credentials() {
     fi
     
     source "$PANEL_CONF"
-    local server_ip
+    local server_ip secret_suffix
     server_ip=$(curl -s -4 --max-time 3 icanhazip.com 2>/dev/null || echo "YOUR_SERVER_IP")
+    secret_suffix=""
+    if [[ -n "$PANEL_SECRET" ]]; then
+        secret_suffix="/${PANEL_SECRET}"
+    fi
     
     echo -e "\n${C_GREEN}=====================================================${C_RESET}"
     echo -e "${C_GREEN}         🌐 Web Panel Credentials                    ${C_RESET}"
     echo -e "${C_GREEN}=====================================================${C_RESET}"
-    echo -e "\n${C_CYAN}  🌐 Panel URL:${C_RESET}    ${C_YELLOW}http://${server_ip}:${PANEL_PORT}${C_RESET}"
+    echo -e "\n${C_CYAN}  🌐 Panel URL:${C_RESET}    ${C_YELLOW}http://${server_ip}:${PANEL_PORT}${secret_suffix}${C_RESET}"
     echo -e "${C_CYAN}  👤 Username:${C_RESET}     ${C_YELLOW}${PANEL_USER}${C_RESET}"
     echo -e "${C_CYAN}  🔑 Password:${C_RESET}     ${C_YELLOW}${PANEL_PASS_PLAIN}${C_RESET}"
+    if [[ -n "$PANEL_SECRET" ]]; then
+        echo -e "${C_CYAN}  🔐 Secret Path:${C_RESET}   ${C_YELLOW}/${PANEL_SECRET}${C_RESET}"
+    fi
     
     if systemctl is-active --quiet firewallfalcon-panel 2>/dev/null; then
         echo -e "\n${C_CYAN}  📡 Status:${C_RESET}       ${C_GREEN}🟢 Running${C_RESET}"
@@ -4434,12 +4445,13 @@ change_panel_credentials() {
     fi
     
     clear; show_banner
-    echo -e "${C_BOLD}${C_PURPLE}--- 🔑 Change Web Panel Credentials ---${C_RESET}"
+    echo -e "${C_BOLD}${C_PURPLE}--- 🔑 Change Web Panel Credentials & Secret Path ---${C_RESET}"
     show_panel_credentials
     
     echo ""
     read -p "👉 Enter new username (or press Enter to keep current): " new_user
     read -p "🔑 Enter new password (or press Enter to auto-generate): " new_pass
+    read -p "🔐 Enter new secret URL path (e.g., secret123, or press Enter to keep): " new_secret
     
     source "$PANEL_CONF"
     
@@ -4450,6 +4462,10 @@ change_panel_credentials() {
         new_pass=$(tr -dc 'A-Za-z0-9@#$' < /dev/urandom | head -c 16)
         echo -e "${C_GREEN}🔑 Auto-generated password: ${C_YELLOW}$new_pass${C_RESET}"
     fi
+    if [[ -z "$new_secret" ]]; then
+        new_secret="${PANEL_SECRET:-panel_$(tr -dc 'a-z0-9' < /dev/urandom | head -c 8)}"
+    fi
+    new_secret=$(echo "$new_secret" | sed 's/^\///')
     
     local new_hash
     new_hash=$(echo -n "$new_pass" | sha256sum | awk '{print $1}')
@@ -4458,13 +4474,15 @@ change_panel_credentials() {
 PANEL_USER="$new_user"
 PANEL_PASS_HASH="$new_hash"
 PANEL_PASS_PLAIN="$new_pass"
+PANEL_SECRET="$new_secret"
 PEOF
     chmod 600 "$PANEL_CONF"
     
     systemctl restart firewallfalcon-panel &>/dev/null
-    echo -e "\n${C_GREEN}✅ Credentials updated! New login:${C_RESET}"
-    echo -e "  ${C_CYAN}👤 Username:${C_RESET} ${C_YELLOW}$new_user${C_RESET}"
-    echo -e "  ${C_CYAN}🔑 Password:${C_RESET} ${C_YELLOW}$new_pass${C_RESET}"
+    echo -e "\n${C_GREEN}✅ Panel credentials & secret path updated!${C_RESET}"
+    echo -e "  ${C_CYAN}👤 Username:${C_RESET}    ${C_YELLOW}$new_user${C_RESET}"
+    echo -e "  ${C_CYAN}🔑 Password:${C_RESET}    ${C_YELLOW}$new_pass${C_RESET}"
+    echo -e "  ${C_CYAN}🔐 Secret Path:${C_RESET}  ${C_YELLOW}/$new_secret${C_RESET}"
 }
 
 web_panel_menu() {
