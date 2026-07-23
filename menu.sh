@@ -667,13 +667,13 @@ setup_limiter_service() {
     # Combined limiter + bandwidth monitoring
     cat > "$LIMITER_SCRIPT" << 'EOF'
 #!/bin/bash
-# FirewallFalcon limiter version 2026-07-23.2
+# FirewallFalcon limiter version 2026-07-23.3
 DB_FILE="/etc/firewallfalcon/users.db"
 BW_DIR="/etc/firewallfalcon/bandwidth"
 PID_DIR="$BW_DIR/pidtrack"
 BANNER_DIR="/etc/firewallfalcon/banners"
 SCAN_INTERVAL=15
-CONN_LOCK_DURATION=120
+CONN_LOCK_DURATION=60
 
 mkdir -p "$BW_DIR" "$PID_DIR"
 shopt -s nullglob
@@ -840,19 +840,18 @@ while true; do
 
         [[ "$limit" =~ ^[0-9]+$ ]] || limit=1
         if (( online_count > limit )); then
-            # Increment strike counter instead of locking immediately
+            # Increment strike counter — require sustained violations before acting
             local prev_strikes=${conn_strikes[$user]:-0}
             conn_strikes["$user"]=$(( prev_strikes + 1 ))
-            if (( conn_strikes[$user] >= 2 )); then
-                # 2+ consecutive violations — real abuse, lock now
+            if (( conn_strikes[$user] >= 3 )); then
+                # 3+ consecutive violations (45+ seconds) — confirmed abuse
+                # ONLY lock (prevent new logins), do NOT killall (that kills active sessions
+                # and causes the reconnection death spiral: kill→EOF→reconnect→locked)
                 if ! $user_locked; then
                     usermod -L "$user" &>/dev/null
-                    killall -u "$user" -9 &>/dev/null
                     printf '%s\n' "$current_ts" > "$BW_DIR/${user}.conn_locked"
                     locked_users["$user"]=1
                     user_locked=true
-                else
-                    killall -u "$user" -9 &>/dev/null
                 fi
             fi
         else
@@ -1056,7 +1055,7 @@ EOF
 }
 
 sync_runtime_components_if_needed() {
-    local limiter_marker="# FirewallFalcon limiter version 2026-07-23.2"
+    local limiter_marker="# FirewallFalcon limiter version 2026-07-23.3"
     cleanup_legacy_bandwidth_runtime
     setup_trial_cleanup_script >/dev/null 2>&1
     if [[ ! -f "$LIMITER_SCRIPT" ]] || ! grep -Fqx "$limiter_marker" "$LIMITER_SCRIPT" 2>/dev/null; then
