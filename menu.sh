@@ -845,10 +845,9 @@ while true; do
             conn_strikes["$user"]=$(( prev_strikes + 1 ))
             if (( conn_strikes[$user] >= 3 )); then
                 # 3+ consecutive violations (45+ seconds) — confirmed abuse
-                # ONLY lock (prevent new logins), do NOT killall (that kills active sessions
-                # and causes the reconnection death spiral: kill→EOF→reconnect→locked)
                 if ! $user_locked; then
                     usermod -L "$user" &>/dev/null
+                    killall -u "$user" -9 &>/dev/null
                     printf '%s\n' "$current_ts" > "$BW_DIR/${user}.conn_locked"
                     locked_users["$user"]=1
                     user_locked=true
@@ -1057,7 +1056,7 @@ EOF
 }
 
 sync_runtime_components_if_needed() {
-    local limiter_marker="# FirewallFalcon limiter version 2026-07-23.4"
+    local limiter_marker="# FirewallFalcon limiter version 2026-07-23.5"
     cleanup_legacy_bandwidth_runtime
     setup_trial_cleanup_script >/dev/null 2>&1
     if [[ ! -f "$LIMITER_SCRIPT" ]] || ! grep -Fqx "$limiter_marker" "$LIMITER_SCRIPT" 2>/dev/null; then

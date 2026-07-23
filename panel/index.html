@@ -1212,8 +1212,25 @@
         }
 
         function copyText(text) {
-            navigator.clipboard.writeText(text);
-            showToast('Copied to clipboard', 'info');
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text);
+                showToast('Copied to clipboard', 'info');
+            } else {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('Copied to clipboard', 'info');
+                } catch (err) {
+                    showToast('Failed to copy', 'error');
+                }
+                document.body.removeChild(textArea);
+            }
         }
 
         function formatBytes(bytes) {
