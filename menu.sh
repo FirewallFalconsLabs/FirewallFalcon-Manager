@@ -667,7 +667,7 @@ setup_limiter_service() {
     # Combined limiter + bandwidth monitoring
     cat > "$LIMITER_SCRIPT" << 'EOF'
 #!/bin/bash
-# FirewallFalcon limiter version 2026-07-23.3
+# FirewallFalcon limiter version 2026-07-23.4
 DB_FILE="/etc/firewallfalcon/users.db"
 BW_DIR="/etc/firewallfalcon/bandwidth"
 PID_DIR="$BW_DIR/pidtrack"
@@ -982,13 +982,14 @@ while true; do
         new_total=$((accumulated + delta_total))
         printf "%s\n" "$new_total" > "$usagefile"
 
-        quota_bytes=$(( ${bandwidth_gb%%.*} * 1073741824 ))
-        if [[ "$bandwidth_gb" != "0" && "$quota_bytes" =~ ^[0-9]+$ ]] && (( new_total >= quota_bytes )); then
-            if ! $user_locked; then
-                usermod -L "$user" &>/dev/null
-                killall -u "$user" -9 &>/dev/null
-                locked_users["$user"]=1
-                user_locked=true
+        if awk "BEGIN{exit(!($bandwidth_gb > 0))}" 2>/dev/null; then
+            quota_bytes=$(awk "BEGIN{printf \"%d\", $bandwidth_gb * 1073741824}")
+            if [[ "$quota_bytes" =~ ^[0-9]+$ ]] && (( quota_bytes > 0 && new_total >= quota_bytes )); then
+                if ! $user_locked; then
+                    usermod -L "$user" &>/dev/null
+                    locked_users["$user"]=1
+                    user_locked=true
+                fi
             fi
         fi
         
@@ -1001,14 +1002,15 @@ while true; do
         new_daily_total=$((daily_accumulated + delta_total))
         printf "%s\n" "$new_daily_total" > "$daily_usagefile"
         
-        d_quota_bytes=$(( ${daily_bandwidth_gb%%.*} * 1073741824 ))
-        if [[ "$daily_bandwidth_gb" != "0" && "$d_quota_bytes" =~ ^[0-9]+$ ]] && (( new_daily_total >= d_quota_bytes )); then
-            if ! $user_locked; then
-                usermod -L "$user" &>/dev/null
-                killall -u "$user" -9 &>/dev/null
-                locked_users["$user"]=1
-                user_locked=true
-                touch "$BW_DIR/${user}.daily_locked"
+        if awk "BEGIN{exit(!($daily_bandwidth_gb > 0))}" 2>/dev/null; then
+            d_quota_bytes=$(awk "BEGIN{printf \"%d\", $daily_bandwidth_gb * 1073741824}")
+            if [[ "$d_quota_bytes" =~ ^[0-9]+$ ]] && (( d_quota_bytes > 0 && new_daily_total >= d_quota_bytes )); then
+                if ! $user_locked; then
+                    usermod -L "$user" &>/dev/null
+                    locked_users["$user"]=1
+                    user_locked=true
+                    touch "$BW_DIR/${user}.daily_locked"
+                fi
             fi
         fi
     done < "$DB_FILE"
@@ -1055,7 +1057,7 @@ EOF
 }
 
 sync_runtime_components_if_needed() {
-    local limiter_marker="# FirewallFalcon limiter version 2026-07-23.3"
+    local limiter_marker="# FirewallFalcon limiter version 2026-07-23.4"
     cleanup_legacy_bandwidth_runtime
     setup_trial_cleanup_script >/dev/null 2>&1
     if [[ ! -f "$LIMITER_SCRIPT" ]] || ! grep -Fqx "$limiter_marker" "$LIMITER_SCRIPT" 2>/dev/null; then

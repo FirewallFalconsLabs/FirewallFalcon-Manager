@@ -87,8 +87,15 @@ def read_db():
                 users.append(u)
     return users
 
+def _fmt_bw(v):
+    """Format bandwidth: 0.0 -> '0', 3.5 -> '3.5', 10.0 -> '10'"""
+    f = float(v)
+    return str(int(f)) if f == int(f) else str(f)
+
 def format_db_line(u):
-    return f"{u['username']}:{u['password']}:{u['expire_date']}:{u['conn_limit']}:{u['bandwidth_gb']}:{u['daily_bandwidth_gb']}:{u['account_type']}\n"
+    bw = _fmt_bw(u.get('bandwidth_gb', 0))
+    dbw = _fmt_bw(u.get('daily_bandwidth_gb', 0))
+    return f"{u['username']}:{u['password']}:{u['expire_date']}:{u['conn_limit']}:{bw}:{dbw}:{u.get('account_type','web')}\n"
 
 def get_online_sessions(target_user=None):
     managed_users = set(u["username"] for u in read_db())
