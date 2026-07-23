@@ -68,6 +68,15 @@ TRIAL_CLEANUP_SCRIPT="/usr/local/bin/firewallfalcon-trial-cleanup.sh"
 LOGIN_INFO_SCRIPT="/usr/local/bin/firewallfalcon-login-info.sh"
 SSHD_FF_CONFIG="/etc/ssh/sshd_config.d/firewallfalcon.conf"
 
+# --- Web Panel Variables ---
+PANEL_SCRIPT="/usr/local/bin/firewallfalcon-panel.py"
+PANEL_HTML_DIR="$DB_DIR/panel"
+PANEL_HTML_FILE="$DB_DIR/panel/index.html"
+PANEL_CONF="$DB_DIR/panel.conf"
+PANEL_SERVICE_FILE="/etc/systemd/system/firewallfalcon-panel.service"
+PANEL_PORT=44380
+PANEL_REPO_BASE="https://codeberg.org/firewallfalcons/FirewallFalcon-Manager/raw/branch/main/panel"
+
 # --- ZiVPN Variables ---
 ZIVPN_DIR="/etc/zivpn"
 ZIVPN_BIN="/usr/local/bin/zivpn"
@@ -4239,6 +4248,255 @@ protocol_menu() {
     done
 }
 
+
+# ====================================================================
+# --- Web Control Panel Functions ---
+# ====================================================================
+
+install_web_panel() {
+    clear; show_banner
+    echo -e "${C_BOLD}${C_PURPLE}--- 🌐 Installing Web Control Panel ---${C_RESET}"
+    
+    if [ -f "$PANEL_SERVICE_FILE" ]; then
+        echo -e "\n${C_YELLOW}ℹ️ Web Panel is already installed.${C_RESET}"
+        show_panel_credentials
+        return
+    fi
+    
+    # Check Python 3
+    if ! command -v python3 &>/dev/null; then
+        echo -e "${C_RED}❌ Python 3 is required but not installed.${C_RESET}"
+        echo -e "${C_YELLOW}Installing python3...${C_RESET}"
+        ff_pkg_install python3 || { echo -e "${C_RED}❌ Failed to install python3.${C_RESET}"; return; }
+    fi
+    
+    echo -e "${C_BLUE}🔎 Checking if port $PANEL_PORT is available...${C_RESET}"
+    check_and_free_ports "$PANEL_PORT" || return
+    check_and_open_firewall_port "$PANEL_PORT" tcp || return
+    
+    # Generate random credentials
+    local panel_user
+    panel_user=$(tr -dc 'a-z' < /dev/urandom | head -c 4)$(tr -dc '0-9' < /dev/urandom | head -c 4)
+    local panel_pass
+    panel_pass=$(tr -dc 'A-Za-z0-9@#$' < /dev/urandom | head -c 16)
+    local panel_pass_hash
+    panel_pass_hash=$(echo -n "$panel_pass" | sha256sum | awk '{print $1}')
+    
+    echo -e "${C_BLUE}📥 Downloading panel files...${C_RESET}"
+    mkdir -p "$PANEL_HTML_DIR"
+    
+    # Download backend
+    curl -sL "$PANEL_REPO_BASE/panel.py" -o "$PANEL_SCRIPT"
+    if [ $? -ne 0 ] || [ ! -s "$PANEL_SCRIPT" ]; then
+        echo -e "${C_RED}❌ Failed to download panel backend.${C_RESET}"
+        return
+    fi
+    chmod +x "$PANEL_SCRIPT"
+    sed -i 's/\r$//' "$PANEL_SCRIPT" 2>/dev/null
+    
+    # Download frontend
+    curl -sL "$PANEL_REPO_BASE/index.html" -o "$PANEL_HTML_FILE"
+    if [ $? -ne 0 ] || [ ! -s "$PANEL_HTML_FILE" ]; then
+        echo -e "${C_RED}❌ Failed to download panel frontend.${C_RESET}"
+        return
+    fi
+    
+    # Save credentials
+    cat > "$PANEL_CONF" <<-PEOF
+PANEL_USER="$panel_user"
+PANEL_PASS_HASH="$panel_pass_hash"
+PANEL_PASS_PLAIN="$panel_pass"
+PEOF
+    chmod 600 "$PANEL_CONF"
+    
+    # Create systemd service
+    cat > "$PANEL_SERVICE_FILE" <<-SEOF
+[Unit]
+Description=FirewallFalcon Web Control Panel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 $PANEL_SCRIPT
+Restart=always
+RestartSec=5
+Nice=10
+MemoryHigh=64M
+MemoryMax=96M
+Environment=PANEL_PORT=$PANEL_PORT
+
+[Install]
+WantedBy=multi-user.target
+SEOF
+    
+    systemctl daemon-reload
+    systemctl enable firewallfalcon-panel &>/dev/null
+    systemctl start firewallfalcon-panel &>/dev/null
+    sleep 2
+    
+    if systemctl is-active --quiet firewallfalcon-panel; then
+        local server_ip
+        server_ip=$(curl -s -4 --max-time 3 icanhazip.com 2>/dev/null || echo "YOUR_SERVER_IP")
+        
+        clear; show_banner
+        echo -e "${C_GREEN}=====================================================${C_RESET}"
+        echo -e "${C_GREEN}     ✅ Web Control Panel Installed Successfully!     ${C_RESET}"
+        echo -e "${C_GREEN}=====================================================${C_RESET}"
+        echo -e "\n${C_CYAN}  🌐 Panel URL:${C_RESET}    ${C_YELLOW}http://${server_ip}:${PANEL_PORT}${C_RESET}"
+        echo -e "${C_CYAN}  👤 Username:${C_RESET}     ${C_YELLOW}${panel_user}${C_RESET}"
+        echo -e "${C_CYAN}  🔑 Password:${C_RESET}     ${C_YELLOW}${panel_pass}${C_RESET}"
+        echo -e "\n${C_DIM}  Save these credentials! You can view them later from option [21] > [3].${C_RESET}"
+    else
+        echo -e "\n${C_RED}❌ Panel service failed to start. Checking logs:${C_RESET}"
+        journalctl -u firewallfalcon-panel -n 15 --no-pager
+    fi
+}
+
+uninstall_web_panel() {
+    if [ ! -f "$PANEL_SERVICE_FILE" ]; then
+        if [[ "$UNINSTALL_MODE" != "silent" ]]; then
+            echo -e "${C_YELLOW}ℹ️ Web Panel is not installed.${C_RESET}"
+        fi
+        return
+    fi
+    
+    if [[ "$UNINSTALL_MODE" != "silent" ]]; then
+        echo -e "\n${C_BOLD}${C_PURPLE}--- 🗑️ Uninstalling Web Control Panel ---${C_RESET}"
+        read -p "👉 Are you sure you want to uninstall the Web Panel? (y/n): " confirm
+        if [[ "$confirm" != "y" ]]; then
+            echo -e "\n${C_YELLOW}❌ Uninstallation cancelled.${C_RESET}"
+            return
+        fi
+    fi
+    
+    echo -e "${C_BLUE}🛑 Stopping and removing Web Panel service...${C_RESET}"
+    systemctl stop firewallfalcon-panel &>/dev/null
+    systemctl disable firewallfalcon-panel &>/dev/null
+    rm -f "$PANEL_SERVICE_FILE"
+    rm -f "$PANEL_SCRIPT"
+    rm -rf "$PANEL_HTML_DIR"
+    rm -f "$PANEL_CONF"
+    systemctl daemon-reload
+    
+    echo -e "${C_GREEN}✅ Web Panel has been uninstalled.${C_RESET}"
+}
+
+show_panel_credentials() {
+    if [ ! -f "$PANEL_CONF" ]; then
+        echo -e "\n${C_YELLOW}ℹ️ Web Panel is not installed.${C_RESET}"
+        return
+    fi
+    
+    source "$PANEL_CONF"
+    local server_ip
+    server_ip=$(curl -s -4 --max-time 3 icanhazip.com 2>/dev/null || echo "YOUR_SERVER_IP")
+    
+    echo -e "\n${C_GREEN}=====================================================${C_RESET}"
+    echo -e "${C_GREEN}         🌐 Web Panel Credentials                    ${C_RESET}"
+    echo -e "${C_GREEN}=====================================================${C_RESET}"
+    echo -e "\n${C_CYAN}  🌐 Panel URL:${C_RESET}    ${C_YELLOW}http://${server_ip}:${PANEL_PORT}${C_RESET}"
+    echo -e "${C_CYAN}  👤 Username:${C_RESET}     ${C_YELLOW}${PANEL_USER}${C_RESET}"
+    echo -e "${C_CYAN}  🔑 Password:${C_RESET}     ${C_YELLOW}${PANEL_PASS_PLAIN}${C_RESET}"
+    
+    if systemctl is-active --quiet firewallfalcon-panel 2>/dev/null; then
+        echo -e "\n${C_CYAN}  📡 Status:${C_RESET}       ${C_GREEN}🟢 Running${C_RESET}"
+    else
+        echo -e "\n${C_CYAN}  📡 Status:${C_RESET}       ${C_RED}🔴 Stopped${C_RESET}"
+    fi
+}
+
+change_panel_credentials() {
+    if [ ! -f "$PANEL_CONF" ]; then
+        echo -e "\n${C_YELLOW}ℹ️ Web Panel is not installed.${C_RESET}"
+        return
+    fi
+    
+    clear; show_banner
+    echo -e "${C_BOLD}${C_PURPLE}--- 🔑 Change Web Panel Credentials ---${C_RESET}"
+    show_panel_credentials
+    
+    echo ""
+    read -p "👉 Enter new username (or press Enter to keep current): " new_user
+    read -p "🔑 Enter new password (or press Enter to auto-generate): " new_pass
+    
+    source "$PANEL_CONF"
+    
+    if [[ -z "$new_user" ]]; then
+        new_user="$PANEL_USER"
+    fi
+    if [[ -z "$new_pass" ]]; then
+        new_pass=$(tr -dc 'A-Za-z0-9@#$' < /dev/urandom | head -c 16)
+        echo -e "${C_GREEN}🔑 Auto-generated password: ${C_YELLOW}$new_pass${C_RESET}"
+    fi
+    
+    local new_hash
+    new_hash=$(echo -n "$new_pass" | sha256sum | awk '{print $1}')
+    
+    cat > "$PANEL_CONF" <<-PEOF
+PANEL_USER="$new_user"
+PANEL_PASS_HASH="$new_hash"
+PANEL_PASS_PLAIN="$new_pass"
+PEOF
+    chmod 600 "$PANEL_CONF"
+    
+    systemctl restart firewallfalcon-panel &>/dev/null
+    echo -e "\n${C_GREEN}✅ Credentials updated! New login:${C_RESET}"
+    echo -e "  ${C_CYAN}👤 Username:${C_RESET} ${C_YELLOW}$new_user${C_RESET}"
+    echo -e "  ${C_CYAN}🔑 Password:${C_RESET} ${C_YELLOW}$new_pass${C_RESET}"
+}
+
+web_panel_menu() {
+    while true; do
+        clear; show_banner
+        echo -e "${C_BOLD}${C_PURPLE}--- 🌐 Web Control Panel ---${C_RESET}\n"
+        
+        if [ -f "$PANEL_SERVICE_FILE" ]; then
+            if systemctl is-active --quiet firewallfalcon-panel 2>/dev/null; then
+                echo -e "  ${C_DIM}Status: ${C_GREEN}🟢 Installed & Running${C_RESET}\n"
+            else
+                echo -e "  ${C_DIM}Status: ${C_RED}🔴 Installed but Stopped${C_RESET}\n"
+            fi
+        else
+            echo -e "  ${C_DIM}Status: ${C_YELLOW}⚪ Not Installed${C_RESET}\n"
+        fi
+        
+        printf "  ${C_GREEN}[ 1]${C_RESET} %-35s\n" "🚀 Install Web Panel"
+        printf "  ${C_GREEN}[ 2]${C_RESET} %-35s\n" "🗑️  Uninstall Web Panel"
+        printf "  ${C_GREEN}[ 3]${C_RESET} %-35s\n" "🔑 Show Panel Credentials"
+        printf "  ${C_GREEN}[ 4]${C_RESET} %-35s\n" "🔄 Change Panel Credentials"
+        printf "  ${C_GREEN}[ 5]${C_RESET} %-35s\n" "🔃 Restart Panel Service"
+        echo -e "\n  ${C_RED}[ 0]${C_RESET} ↩️  Back to Main Menu"
+        echo
+        
+        read -r -p "👉 Enter your choice: " panel_choice
+        case $panel_choice in
+            1) install_web_panel; press_enter ;;
+            2) uninstall_web_panel; press_enter ;;
+            3) show_panel_credentials; press_enter ;;
+            4) change_panel_credentials; press_enter ;;
+            5)
+                if [ -f "$PANEL_SERVICE_FILE" ]; then
+                    systemctl restart firewallfalcon-panel &>/dev/null
+                    sleep 1
+                    if systemctl is-active --quiet firewallfalcon-panel; then
+                        echo -e "\n${C_GREEN}✅ Web Panel service restarted successfully.${C_RESET}"
+                    else
+                        echo -e "\n${C_RED}❌ Failed to restart. Checking logs:${C_RESET}"
+                        journalctl -u firewallfalcon-panel -n 10 --no-pager
+                    fi
+                else
+                    echo -e "\n${C_YELLOW}ℹ️ Web Panel is not installed.${C_RESET}"
+                fi
+                press_enter
+                ;;
+            0) return ;;
+            *) invalid_option ;;
+        esac
+    done
+}
+
 uninstall_script() {
     clear; show_banner
     echo -e "${C_RED}=====================================================${C_RESET}"
@@ -4303,6 +4561,7 @@ uninstall_script() {
     uninstall_ssl_tunnel
     uninstall_falcon_proxy
     uninstall_zivpn
+    uninstall_web_panel
     delete_dns_record
     
     echo -e "\n${C_BLUE}🔄 Reloading systemd daemon...${C_RESET}"
@@ -4986,6 +5245,7 @@ main_menu() {
         printf "     ${C_CHOICE}[%2s]${C_RESET} %-28s ${C_CHOICE}[%2s]${C_RESET} %-28s\n" "15" "🌐 Free Domain (deSEC)" "16" "🎨 SSH Banner Config"
         printf "     ${C_CHOICE}[%2s]${C_RESET} %-28s ${C_CHOICE}[%2s]${C_RESET} %-28s\n" "17" "🔄 Auto-Reboot Task" "18" "💾 Backup User Data"
         printf "     ${C_CHOICE}[%2s]${C_RESET} %-28s ${C_CHOICE}[%2s]${C_RESET} %-28s\n" "19" "📥 Restore User Data" "20" "🧹 Cleanup Expired Users"
+        printf "     ${C_CHOICE}[%2s]${C_RESET} %-28s\n" "21" "🌐 Web Control Panel"
 
         echo
         echo -e "   ${C_DANGER}═══════════════════[ ${C_BOLD}🔥 DANGER ZONE ${C_RESET}${C_DANGER}]═══════════════════${C_RESET}"
@@ -5018,6 +5278,7 @@ main_menu() {
             18) backup_user_data; press_enter ;;
             19) restore_user_data; press_enter ;;
             20) cleanup_expired; press_enter ;;
+            21) web_panel_menu ;;
             
             99) uninstall_script ;;
             0) exit 0 ;;
