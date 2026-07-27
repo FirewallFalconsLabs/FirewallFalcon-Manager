@@ -52,6 +52,21 @@ def run_cmd(cmd_args, ignore_errors=False):
         print(f"Exception running command {cmd_args}: {e}", file=sys.stderr)
         return -1, "", str(e)
 
+def force_delete_system_user(username):
+    """Kill all processes and force-delete a Linux system user."""
+    import time as _time
+    # Kill all processes owned by this user
+    run_cmd(["pkill", "-9", "-u", username], ignore_errors=True)
+    run_cmd(["killall", "-u", username, "-9"], ignore_errors=True)
+    _time.sleep(0.5)
+    # Force delete with retry
+    code, _, _ = run_cmd(["userdel", "-rf", username], ignore_errors=True)
+    if code != 0:
+        # Retry after killing harder
+        run_cmd(["pkill", "-9", "-u", username], ignore_errors=True)
+        _time.sleep(1)
+        run_cmd(["userdel", "-rf", username], ignore_errors=True)
+
 # --- USERS DB ---
 def parse_db_line(line):
     parts = line.strip().split(":")
@@ -848,8 +863,7 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
         if not self._check_user_ownership(username, session):
             return self.send_json(403, {"error": "Access denied"})
 
-        run_cmd(["killall", "-u", username, "-9"], ignore_errors=True)
-        run_cmd(["userdel", "-r", username], ignore_errors=True)
+        force_delete_system_user(username)
         
         with db_lock:
             lines = []
@@ -1042,8 +1056,7 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             owned = [u for u in users if u.get("owner") == username]
             for u in owned:
                 un = u["username"]
-                run_cmd(["killall", "-u", un, "-9"], ignore_errors=True)
-                run_cmd(["userdel", "-r", un], ignore_errors=True)
+                force_delete_system_user(un)
                 run_cmd(f"rm -f {BW_DIR}/{un}.*", ignore_errors=True)
                 run_cmd(f"rm -f /etc/firewallfalcon/banners/{un}.txt", ignore_errors=True)
             

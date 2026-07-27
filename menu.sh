@@ -461,16 +461,28 @@ delete_firewallfalcon_user_accounts() {
     for username in "${users_to_delete[@]}"; do
         [[ -n "$username" ]] || continue
         killall -u "$username" -9 &>/dev/null
+        pkill -9 -u "$username" &>/dev/null
+        sleep 0.5
         if id "$username" &>/dev/null; then
-            if userdel -r "$username" &>/dev/null; then
+            if userdel -rf "$username" &>/dev/null; then
                 echo -e " ✅ System user '${C_YELLOW}$username${C_RESET}' deleted."
             else
-                echo -e " ❌ Failed to delete system user '${C_YELLOW}$username${C_RESET}'."
+                # Retry after harder kill
+                pkill -9 -u "$username" &>/dev/null
+                sleep 1
+                if userdel -rf "$username" &>/dev/null; then
+                    echo -e " ✅ System user '${C_YELLOW}$username${C_RESET}' deleted (retry)."
+                else
+                    echo -e " ❌ Failed to delete system user '${C_YELLOW}$username${C_RESET}'."
+                fi
             fi
         else
             echo -e " ℹ️ System user '${C_YELLOW}$username${C_RESET}' was already missing. Removing manager data only."
         fi
         rm -f "$BANDWIDTH_DIR/${username}.usage"
+        rm -f "$BANDWIDTH_DIR/${username}.daily_usage"
+        rm -f "$BANDWIDTH_DIR/${username}.conn_locked"
+        rm -f "$BANDWIDTH_DIR/${username}.daily_locked"
         rm -rf "$BANDWIDTH_DIR/pidtrack/${username}"
     done
 
@@ -1115,10 +1127,11 @@ fi
 
 # Kill active sessions
 killall -u "$username" -9 &>/dev/null
+pkill -9 -u "$username" &>/dev/null
 sleep 1
 
 # Delete system user
-userdel -r "$username" &>/dev/null
+userdel -rf "$username" &>/dev/null
 
 # Remove from DB
 sed -i "/^${username}:/d" "$DB_FILE"
