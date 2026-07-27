@@ -23,7 +23,27 @@ FF_USERS_GROUP = "firewallfalcon-users"
 PORT = 44380
 
 # --- GLOBAL STATE ---
+SESSION_FILE = "/etc/firewallfalcon/sessions.json"
 sessions = {}  # token -> {"username": str, "role": "admin"|"reseller", "created_at": float}
+
+def load_sessions():
+    global sessions
+    try:
+        if os.path.exists(SESSION_FILE):
+            with open(SESSION_FILE, "r") as f:
+                sessions = json.load(f)
+    except Exception:
+        sessions = {}
+
+def save_sessions():
+    try:
+        os.makedirs(os.path.dirname(SESSION_FILE), exist_ok=True)
+        with open(SESSION_FILE, "w") as f:
+            json.dump(sessions, f)
+    except Exception:
+        pass
+
+load_sessions()
 db_lock = threading.Lock()
 
 PROTOCOLS = [
@@ -255,6 +275,8 @@ def cleanup_sessions():
     expired = [t for t, s in sessions.items() if now - s["created_at"] > 86400]
     for t in expired:
         del sessions[t]
+    if expired:
+        save_sessions()
 
 def generate_password(length=8):
     chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -514,6 +536,7 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
         if user == creds.get("PANEL_USER") and pwd_hash == creds.get("PANEL_PASS_HASH"):
             token = secrets.token_hex(32)
             sessions[token] = {"username": user, "role": "admin", "created_at": time.time()}
+            save_sessions()
             cookie_str = f"session={token}; Path=/; HttpOnly; Max-Age=86400"
             self.send_json(200, {"success": True, "role": "admin"}, {"Set-Cookie": cookie_str})
             return
@@ -533,6 +556,7 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
                     pass
                 token = secrets.token_hex(32)
                 sessions[token] = {"username": user, "role": "reseller", "created_at": time.time()}
+                save_sessions()
                 cookie_str = f"session={token}; Path=/; HttpOnly; Max-Age=86400"
                 self.send_json(200, {"success": True, "role": "reseller"}, {"Set-Cookie": cookie_str})
                 return
@@ -546,6 +570,7 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
                 token = C["session"].value
                 if token in sessions:
                     del sessions[token]
+                    save_sessions()
         cookie_str = f"session=; Path=/; HttpOnly; Max-Age=0"
         self.send_json(200, {"success": True}, {"Set-Cookie": cookie_str})
 
@@ -1109,6 +1134,8 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
         tokens_to_remove = [t for t, s in sessions.items() if s.get("username") == username and s.get("role") == "reseller"]
         for t in tokens_to_remove:
             del sessions[t]
+        if tokens_to_remove:
+            save_sessions()
 
         self.send_json(200, {"success": True})
 
