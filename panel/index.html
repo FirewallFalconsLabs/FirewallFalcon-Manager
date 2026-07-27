@@ -171,7 +171,7 @@
 </aside>
 <main class="main">
     <section id="tab-dashboard" class="tp">
-        <div class="ph"><div><h1 class="pt">Dashboard</h1><p style="color:var(--t2);font-size:.78rem;">System overview</p></div></div>
+        <div class="ph"><div><h1 class="pt">Dashboard</h1><p style="color:var(--t2);font-size:.78rem;">System overview</p></div><div class="pa ao"><button class="btn bd bsm" onclick="sysReboot()">⏻ Reboot</button></div></div>
         <div id="rib" class="gc rbar hidden"><div style="display:flex;flex-direction:column;gap:.05rem;"><span class="scl">Quota</span><span style="font-size:.85rem;font-weight:500;color:var(--al);" id="ri-q">--</span></div><div style="display:flex;flex-direction:column;gap:.05rem;"><span class="scl">Expires</span><span style="font-size:.85rem;font-weight:500;color:var(--al);" id="ri-e">--</span></div></div>
         <div class="sgrid">
             <div class="gc sc"><div class="sl">Accounts</div><div class="sv gt" id="du">--</div><div class="sd" id="dud">Managed users</div></div>
@@ -360,6 +360,7 @@ async function dU(u){if(!confirm(`Delete "${u}"?`))return;try{await api('DELETE'
 async function rnU(u){const d=prompt(`Renew ${u} — days?`,'30');if(!d||isNaN(d))return;try{await api('POST',`/api/users/${u}/renew`,{days:+d});T('Renewed','s');lU();}catch(e){T(e.message,'e');}}
 async function tR(u){try{const r=await api('POST',`/api/resellers/${u}/toggle`);T(`${r.enabled?'Enabled':'Disabled'}`,'s');lR();}catch(e){T(e.message,'e');}}
 async function dR(u,n){let del=false;if(n>0)del=confirm(`Also delete ${n} SSH accounts?`);if(!confirm(`Delete reseller "${u}"?`))return;try{await api('DELETE',`/api/resellers/${u}?delete_users=${del?'1':'0'}`);T('Deleted','s');lR();}catch(e){T(e.message,'e');}}
+async function sysReboot(){if(!confirm('Reboot the server? This will disconnect all users temporarily.'))return;try{await api('POST','/api/system/reboot');T('Rebooting...','s');setTimeout(()=>sL(),2000);}catch(e){T(e.message,'e');}}
 
 function openM(id){document.getElementById(id).classList.add('active');}
 function closeM(id){document.getElementById(id).classList.remove('active');}

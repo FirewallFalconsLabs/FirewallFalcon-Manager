@@ -427,6 +427,10 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             if not self._require_admin(session):
                 return
             self.handle_post_reseller(body)
+        elif path == "/api/system/reboot":
+            if not self._require_admin(session):
+                return
+            self.handle_system_reboot()
         elif path.startswith("/api/resellers/") and path.endswith("/toggle"):
             if not self._require_admin(session):
                 return
@@ -957,6 +961,11 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             self.send_json(200, {"success": True})
         else:
             self.send_json(500, {"success": False, "error": err})
+
+    def handle_system_reboot(self):
+        self.send_json(200, {"success": True, "message": "Rebooting system..."})
+        # Schedule reboot in background so we can return response first
+        threading.Timer(2.0, lambda: subprocess.run(["reboot"])).start()
 
     def handle_get_settings(self):
         creds = get_panel_creds()
