@@ -8,963 +8,667 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦅</text></svg>">
     <style>
         :root {
-            --bg-dark: #0f1219;
-            --bg-card: rgba(22, 27, 34, 0.85);
-            --bg-card-hover: rgba(30, 36, 45, 0.95);
-            --bg-input: rgba(15, 18, 25, 0.9);
-            --border-glow: rgba(212, 175, 55, 0.3);
-            --border-subtle: rgba(255, 255, 255, 0.06);
-            --border-strong: rgba(255, 255, 255, 0.12);
+            --bg-dark: #0b0e14;
+            --bg-card: rgba(20, 25, 32, 0.92);
+            --bg-card-hover: rgba(28, 34, 44, 0.95);
+            --bg-input: rgba(12, 15, 22, 0.95);
+            --bg-surface: rgba(16, 20, 28, 0.9);
+            --border-glow: rgba(212, 175, 55, 0.25);
+            --border-subtle: rgba(255, 255, 255, 0.05);
+            --border-strong: rgba(255, 255, 255, 0.1);
             --accent-gold: #d4af37;
             --accent-gold-light: #f3e5ab;
+            --accent-gold-dim: rgba(212, 175, 55, 0.15);
             --accent-teal: #14b8a6;
-            --accent-teal-dark: #0f766e;
+            --accent-teal-dim: rgba(20, 184, 166, 0.12);
             --success: #10b981;
             --warning: #f59e0b;
-            --danger: #e11d48;
-            --text-main: #e2e8f0;
-            --text-sub: #94a3b8;
-            --text-dim: #64748b;
+            --danger: #ef4444;
+            --text-main: #e8ecf4;
+            --text-sub: #8b95a8;
+            --text-dim: #5a6478;
+            --radius-xl: 16px;
             --radius-lg: 12px;
             --radius-md: 8px;
-            --radius-sm: 4px;
+            --radius-sm: 6px;
             --font-sans: 'Outfit', system-ui, -apple-system, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); -webkit-tap-highlight-color: transparent; }
+        html { scroll-behavior: smooth; }
         body {
-            background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; overflow-x: hidden;
-            background-image: radial-gradient(circle at 0% 0%, rgba(212,175,55,0.03) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(20,184,166,0.03) 0%, transparent 50%);
+            background: var(--bg-dark); color: var(--text-main); min-height: 100vh; min-height: 100dvh; overflow-x: hidden;
+            background-image: radial-gradient(ellipse at 20% 0%, rgba(212,175,55,0.04) 0%, transparent 60%), radial-gradient(ellipse at 80% 100%, rgba(20,184,166,0.03) 0%, transparent 60%);
             background-attachment: fixed;
         }
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: var(--bg-dark); }
-        ::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.2); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent-gold); }
-        .gradient-text { background: linear-gradient(135deg, var(--accent-gold-light), var(--accent-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.15); border-radius: 4px; }
+        .gradient-text { background: linear-gradient(135deg, var(--accent-gold-light), var(--accent-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .mono { font-family: var(--font-mono); }
         .hidden { display: none !important; }
+
+        /* --- GLASS CARD --- */
         .glass-card {
-            background: var(--bg-card); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--border-subtle); border-radius: var(--radius-lg);
-            box-shadow: 0 4px 24px rgba(0,0,0,0.2); transition: all 0.3s ease;
+            background: var(--bg-card); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border-subtle); border-radius: var(--radius-xl);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.25); transition: all 0.25s ease;
         }
-        .glass-card:hover { border-color: var(--border-strong); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        .glass-card:hover { border-color: var(--border-strong); }
+
+        /* --- BUTTONS --- */
         .btn {
             display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-            padding: 0.65rem 1.25rem; border-radius: var(--radius-md); font-size: 0.85rem;
+            padding: 0.7rem 1.4rem; border-radius: var(--radius-md); font-size: 0.85rem;
             font-weight: 600; letter-spacing: 0.02em; cursor: pointer; border: 1px solid transparent;
-            transition: all 0.2s ease; text-decoration: none; white-space: nowrap;
+            transition: all 0.2s ease; text-decoration: none; white-space: nowrap; user-select: none;
         }
-        .btn-primary { background: linear-gradient(135deg, var(--accent-gold), #b8972e); color: #000; box-shadow: 0 4px 14px rgba(212,175,55,0.15); }
-        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(212,175,55,0.25); filter: brightness(1.1); }
-        .btn-secondary { background: rgba(255,255,255,0.03); color: var(--text-main); border-color: var(--border-strong); }
-        .btn-secondary:hover { background: rgba(255,255,255,0.06); border-color: var(--accent-gold); }
-        .btn-danger { background: rgba(225,29,72,0.1); color: #fda4af; border-color: rgba(225,29,72,0.2); }
-        .btn-danger:hover { background: rgba(225,29,72,0.2); border-color: var(--danger); }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: linear-gradient(135deg, var(--accent-gold), #c09b2d); color: #000; box-shadow: 0 4px 14px rgba(212,175,55,0.2); }
+        .btn-primary:hover { box-shadow: 0 6px 20px rgba(212,175,55,0.3); filter: brightness(1.08); }
+        .btn-secondary { background: rgba(255,255,255,0.04); color: var(--text-main); border-color: var(--border-strong); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.07); border-color: rgba(212,175,55,0.3); }
+        .btn-danger { background: rgba(239,68,68,0.1); color: #fca5a5; border-color: rgba(239,68,68,0.2); }
+        .btn-danger:hover { background: rgba(239,68,68,0.18); }
+        .btn-sm { padding: 0.5rem 0.9rem; font-size: 0.78rem; border-radius: var(--radius-sm); }
         .btn-icon {
-            width: 32px; height: 32px; padding: 0; border-radius: var(--radius-md);
-            background: rgba(255,255,255,0.03); color: var(--text-sub); border: 1px solid var(--border-subtle);
-            cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;
+            width: 36px; height: 36px; min-width: 36px; padding: 0; border-radius: var(--radius-md);
+            background: rgba(255,255,255,0.04); color: var(--text-sub); border: 1px solid var(--border-subtle);
+            cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; font-size: 1rem;
         }
-        .btn-icon:hover { color: var(--accent-gold); background: rgba(212,175,55,0.1); border-color: var(--border-glow); }
-        .input-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.25rem; }
-        .input-group label { font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-sub); }
-        .input-wrapper { position: relative; display: flex; align-items: center; }
-        .input-wrapper input, .input-wrapper select, .input-group input, .input-group select {
+        .btn-icon:hover { color: var(--accent-gold); background: var(--accent-gold-dim); border-color: var(--border-glow); }
+        .btn-icon:active { transform: scale(0.92); }
+
+        /* --- INPUTS --- */
+        .input-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.1rem; }
+        .input-group label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-sub); }
+        .input-group input, .input-group select {
             width: 100%; padding: 0.75rem 1rem; background: var(--bg-input); border: 1px solid var(--border-strong);
             border-radius: var(--radius-md); color: var(--text-main); font-size: 0.9rem; outline: none; transition: all 0.2s;
         }
-        .input-wrapper input:focus, .input-wrapper select:focus, .input-group input:focus, .input-group select:focus {
-            border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(212,175,55,0.1);
-        }
-        @keyframes pulse { from { opacity: 0.5; transform: scale(0.95); } to { opacity: 1; transform: scale(1.05); } }
-        #toast-container { position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; }
+        .input-group input:focus, .input-group select:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 3px rgba(212,175,55,0.08); }
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+        /* --- TOASTS --- */
+        #toast-container { position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; width: 90%; max-width: 380px; }
         .toast {
-            pointer-events: auto; min-width: 280px; padding: 1rem 1.25rem; border-radius: var(--radius-md);
-            background: var(--bg-card); backdrop-filter: blur(10px); border: 1px solid var(--border-strong);
+            pointer-events: auto; padding: 0.85rem 1.2rem; border-radius: var(--radius-lg);
+            background: rgba(20,25,32,0.97); backdrop-filter: blur(16px); border: 1px solid var(--border-strong);
             color: var(--text-main); font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 0.75rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4); animation: toastIn 0.3s cubic-bezier(0.175,0.885,0.32,1.275);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5); animation: toastSlide 0.35s cubic-bezier(0.16,1,0.3,1);
         }
-        @keyframes toastIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .toast.success { border-left: 3px solid var(--accent-gold); }
+        @keyframes toastSlide { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .toast.success { border-left: 3px solid var(--success); }
         .toast.error { border-left: 3px solid var(--danger); }
         .toast.info { border-left: 3px solid var(--accent-teal); }
-        #login-view { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1.5rem; background: radial-gradient(circle at center, rgba(212,175,55,0.05) 0%, transparent 60%); }
-        .login-card { width: 100%; max-width: 420px; padding: 3rem 2.5rem; text-align: center; }
-        .login-brand { font-size: 3rem; margin-bottom: 0.5rem; filter: drop-shadow(0 0 10px rgba(212,175,55,0.2)); }
-        .login-title { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: -0.02em; }
-        .login-subtitle { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 2.5rem; font-weight: 300; letter-spacing: 0.05em; text-transform: uppercase; }
-        #app-view { display: flex; min-height: 100vh; }
+
+        /* --- BADGES --- */
+        .badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.65rem; border-radius: 20px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+        .badge-green { background: rgba(16,185,129,0.12); color: #34d399; }
+        .badge-red { background: rgba(239,68,68,0.12); color: #fca5a5; }
+        .badge-yellow { background: var(--accent-gold-dim); color: var(--accent-gold-light); }
+        .badge-gray { background: rgba(255,255,255,0.06); color: var(--text-sub); }
+        .badge-teal { background: var(--accent-teal-dim); color: var(--accent-teal); }
+
+        /* --- LOADING --- */
+        @keyframes pulse { 0%,100% { opacity: 0.4; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1.05); } }
+        #loading-view { display: flex; align-items: center; justify-content: center; min-height: 100vh; min-height: 100dvh; }
+
+        /* --- LOGIN --- */
+        #login-view { display: flex; align-items: center; justify-content: center; min-height: 100vh; min-height: 100dvh; padding: 1.5rem; }
+        .login-card { width: 100%; max-width: 400px; padding: 2.5rem 2rem; text-align: center; }
+        .login-brand { font-size: 3.5rem; margin-bottom: 0.75rem; filter: drop-shadow(0 0 15px rgba(212,175,55,0.2)); }
+        .login-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: -0.02em; }
+        .login-subtitle { font-size: 0.78rem; color: var(--text-dim); margin-bottom: 2rem; font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; }
+
+        /* --- APP LAYOUT --- */
+        #app-view { min-height: 100vh; min-height: 100dvh; }
+
+        /* Desktop Sidebar */
         .sidebar {
-            width: 280px; background: rgba(15,18,25,0.98); border-right: 1px solid var(--border-subtle);
+            width: 260px; background: rgba(12,15,22,0.98); border-right: 1px solid var(--border-subtle);
             display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 100;
-            transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
         }
-        .sidebar-header { padding: 2rem 1.5rem; display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid var(--border-subtle); }
-        .sidebar-brand { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
-        .sidebar-nav { padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
+        .sidebar-header { padding: 1.75rem 1.5rem; display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid var(--border-subtle); }
+        .sidebar-brand { font-size: 1rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+        .sidebar-nav { padding: 1.25rem 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; flex: 1; }
         .nav-item {
-            display: flex; align-items: center; gap: 1rem; padding: 0.85rem 1.25rem; border-radius: var(--radius-md);
-            color: var(--text-sub); font-size: 0.9rem; font-weight: 500; letter-spacing: 0.02em; cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; gap: 0.85rem; padding: 0.75rem 1rem; border-radius: var(--radius-md);
+            color: var(--text-sub); font-size: 0.88rem; font-weight: 500; cursor: pointer; transition: all 0.2s; border-left: 2px solid transparent;
         }
         .nav-item:hover { color: var(--text-main); background: rgba(255,255,255,0.03); }
-        .nav-item.active { color: var(--accent-gold); background: linear-gradient(90deg, rgba(212,175,55,0.1) 0%, transparent 100%); border-left: 2px solid var(--accent-gold); }
-        .sidebar-footer { padding: 1.5rem 1rem; border-top: 1px solid var(--border-subtle); }
-        .main-content { flex: 1; margin-left: 280px; padding: 2.5rem; max-width: 1400px; transition: margin 0.3s ease; }
-        .mobile-bar {
-            display: none; position: fixed; top: 0; left: 0; right: 0; height: 64px;
-            background: rgba(15,18,25,0.95); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-subtle);
-            z-index: 90; padding: 0 1.25rem; align-items: center; justify-content: space-between;
+        .nav-item.active { color: var(--accent-gold); background: var(--accent-gold-dim); border-left-color: var(--accent-gold); }
+        .nav-item .nav-icon { font-size: 1.15rem; width: 28px; text-align: center; }
+        .sidebar-footer { padding: 1.25rem 0.75rem; border-top: 1px solid var(--border-subtle); }
+        .sidebar-role { text-align: center; margin-bottom: 0.75rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); }
+        .main-content { margin-left: 260px; padding: 2rem 2.5rem; max-width: 1200px; }
+
+        /* Mobile Bottom Nav */
+        .mobile-header {
+            display: none; position: fixed; top: 0; left: 0; right: 0; height: 56px; z-index: 90;
+            background: rgba(11,14,20,0.95); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border-subtle);
+            padding: 0 1.25rem; align-items: center; justify-content: space-between;
         }
-        .page-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 2.5rem; gap: 1rem; flex-wrap: wrap; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; }
-        .page-title { font-size: 1.8rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
-        .badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.75rem; border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-        .badge-green { background: rgba(20,184,166,0.1); color: var(--accent-teal); border: 1px solid rgba(20,184,166,0.2); }
-        .badge-red { background: rgba(225,29,72,0.1); color: #fb7185; border: 1px solid rgba(225,29,72,0.2); }
-        .badge-yellow { background: rgba(212,175,55,0.1); color: var(--accent-gold); border: 1px solid rgba(212,175,55,0.2); }
-        .badge-gray { background: rgba(255,255,255,0.05); color: var(--text-sub); border: 1px solid var(--border-strong); }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem; }
-        .stat-card { padding: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; border-top: 2px solid transparent; }
-        .stat-card:hover { border-top-color: var(--accent-gold); }
-        .stat-label { font-size: 0.75rem; font-weight: 500; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.08em; }
-        .stat-value { font-size: 2rem; font-weight: 300; color: var(--text-main); letter-spacing: -0.03em; margin: 0.25rem 0; }
-        .stat-desc { font-size: 0.8rem; color: var(--text-dim); }
-        .server-info-bar { padding: 1.25rem 1.75rem; margin-bottom: 2.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
-        .info-item { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; }
-        .info-label { color: var(--text-dim); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.7rem; }
-        .info-val { color: var(--text-main); font-weight: 400; }
-        .table-responsive { width: 100%; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th { padding: 1rem 1.25rem; font-size: 0.7rem; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border-strong); background: rgba(0,0,0,0.2); }
-        td { padding: 1.25rem; font-size: 0.85rem; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
-        tr:hover td { background: rgba(255,255,255,0.02); }
-        .users-mobile-grid { display: none; flex-direction: column; gap: 1rem; }
-        .user-mobile-card { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
-        .user-card-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 1rem; }
-        .user-card-title { font-size: 1.1rem; font-weight: 600; }
-        .user-card-meta { display: grid; grid-template-columns: 1fr; gap: 0.5rem; font-size: 0.85rem; }
-        .meta-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed var(--border-subtle); }
-        .meta-label { color: var(--text-dim); }
-        .user-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem; }
-        .protocol-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
-        .protocol-card { padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; gap: 1.25rem; }
+        .bottom-nav {
+            display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(11,14,20,0.97); backdrop-filter: blur(20px); border-top: 1px solid var(--border-subtle);
+            padding: 0.5rem 0.5rem calc(0.5rem + var(--safe-bottom));
+            justify-content: space-around; align-items: center;
+        }
+        .bottom-nav-item {
+            display: flex; flex-direction: column; align-items: center; gap: 0.2rem; padding: 0.4rem 0.75rem;
+            border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s; color: var(--text-dim); min-width: 56px;
+        }
+        .bottom-nav-item .bnav-icon { font-size: 1.25rem; transition: transform 0.2s; }
+        .bottom-nav-item .bnav-label { font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+        .bottom-nav-item.active { color: var(--accent-gold); }
+        .bottom-nav-item.active .bnav-icon { transform: scale(1.15); }
+        .bottom-nav-item:active { transform: scale(0.92); }
+
+        /* --- PAGE HEADER --- */
+        .page-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 1.75rem; gap: 1rem; flex-wrap: wrap; }
+        .page-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+        .page-sub { color: var(--text-sub); font-size: 0.82rem; margin-top: 0.2rem; }
+
+        /* --- STAT CARDS --- */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.75rem; }
+        .stat-card { padding: 1.25rem 1.5rem; position: relative; overflow: hidden; }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent-gold), transparent); opacity: 0; transition: opacity 0.3s; }
+        .stat-card:hover::before { opacity: 1; }
+        .stat-label { font-size: 0.7rem; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+        .stat-value { font-size: 1.75rem; font-weight: 300; letter-spacing: -0.03em; }
+        .stat-desc { font-size: 0.75rem; color: var(--text-dim); margin-top: 0.35rem; }
+
+        /* --- SERVER INFO --- */
+        .server-bar { padding: 1rem 1.5rem; margin-bottom: 1.75rem; display: flex; gap: 2rem; flex-wrap: wrap; }
+        .info-chip { display: flex; flex-direction: column; gap: 0.15rem; }
+        .info-chip-label { font-size: 0.65rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+        .info-chip-val { font-size: 0.85rem; color: var(--text-main); }
+
+        /* --- USER CARDS (MOBILE) --- */
+        .user-cards { display: flex; flex-direction: column; gap: 0.75rem; }
+        .user-card { padding: 1.25rem; }
+        .user-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+        .user-card-name { font-family: var(--font-mono); font-size: 1rem; font-weight: 600; color: var(--accent-gold-light); }
+        .user-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1rem; margin-bottom: 1rem; }
+        .user-card-field { display: flex; flex-direction: column; gap: 0.15rem; }
+        .ucf-label { font-size: 0.65rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+        .ucf-value { font-size: 0.82rem; color: var(--text-main); }
+        .user-card-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+        .user-card-actions .btn { font-size: 0.75rem; padding: 0.55rem 0.25rem; }
+
+        /* --- TABLE (DESKTOP) --- */
+        .table-wrap { display: block; }
+        .table-wrap table { width: 100%; border-collapse: collapse; }
+        .table-wrap th { padding: 0.85rem 1rem; font-size: 0.68rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border-strong); background: rgba(0,0,0,0.15); text-align: left; }
+        .table-wrap td { padding: 1rem; font-size: 0.82rem; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+        .table-wrap tr:hover td { background: rgba(255,255,255,0.015); }
+        .td-actions { display: flex; gap: 0.3rem; justify-content: flex-end; }
+
+        /* --- PROTOCOL GRID --- */
+        .protocol-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+        .protocol-card { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+        .protocol-top { display: flex; align-items: center; justify-content: space-between; }
+        .protocol-name { font-weight: 600; font-size: 1rem; }
+        .protocol-port { font-size: 0.78rem; color: var(--text-dim); }
+
+        /* --- MODALS --- */
         .modal-overlay {
-            position: fixed; inset: 0; background: rgba(15,18,25,0.8); backdrop-filter: blur(8px);
-            z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1.5rem;
-            opacity: 0; pointer-events: none; transition: all 0.3s ease;
+            position: fixed; inset: 0; background: rgba(11,14,20,0.85); backdrop-filter: blur(8px);
+            z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem;
+            opacity: 0; pointer-events: none; transition: all 0.25s ease;
         }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         .modal-box {
-            width: 100%; max-width: 500px; background: var(--bg-card); border: 1px solid var(--border-strong);
-            border-radius: var(--radius-lg); padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-            transform: scale(0.95) translateY(10px); transition: all 0.3s cubic-bezier(0.175,0.885,0.32,1.275);
-            max-height: 90vh; overflow-y: auto;
+            width: 100%; max-width: 480px; background: var(--bg-surface); border: 1px solid var(--border-strong);
+            border-radius: var(--radius-xl); padding: 1.75rem; box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+            transform: scale(0.95) translateY(10px); transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+            max-height: 90vh; max-height: 90dvh; overflow-y: auto;
         }
         .modal-overlay.active .modal-box { transform: scale(1) translateY(0); }
-        .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; }
-        .modal-title { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.01em; }
-        .modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 1rem; margin-top: 2rem; }
-        @media (max-width: 900px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.active { transform: translateX(0); box-shadow: 20px 0 50px rgba(0,0,0,0.5); }
-            .main-content { margin-left: 0; padding: 5.5rem 1rem 2rem 1rem; }
-            .mobile-bar { display: flex; }
-            .desktop-table-wrapper { display: none; }
-            .users-mobile-grid { display: flex; }
-            .page-header { flex-direction: column; align-items: flex-start; }
-            .page-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; width: 100%; }
-            .page-actions .btn { flex: 1; justify-content: center; }
+        .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+        .modal-title { font-size: 1.15rem; font-weight: 700; }
+        .modal-footer { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+        .modal-footer .btn { flex: 1; }
+
+        /* --- RESELLER INFO BAR --- */
+        .reseller-bar { padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center; }
+        .reseller-stat { display: flex; flex-direction: column; gap: 0.1rem; }
+        .reseller-stat-label { font-size: 0.65rem; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+        .reseller-stat-val { font-size: 0.9rem; font-weight: 500; color: var(--accent-gold-light); }
+
+        /* --- SEARCH --- */
+        .search-box { margin-bottom: 1.25rem; }
+        .search-box input {
+            width: 100%; max-width: 360px; padding: 0.7rem 1rem 0.7rem 2.5rem; background: var(--bg-input);
+            border: 1px solid var(--border-strong); border-radius: var(--radius-lg); color: var(--text-main);
+            font-size: 0.85rem; outline: none; transition: all 0.2s;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%235a6478' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.44.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: 0.85rem center;
+        }
+        .search-box input:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 3px rgba(212,175,55,0.08); }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .mobile-header { display: flex; }
+            .bottom-nav { display: flex; }
+            .main-content { margin-left: 0; padding: 4.5rem 1rem calc(5rem + var(--safe-bottom)); }
+            .table-wrap { display: none; }
+            .page-header { margin-bottom: 1.25rem; }
+            .page-title { font-size: 1.25rem; }
+            .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+            .stat-card { padding: 1rem 1.15rem; }
+            .stat-value { font-size: 1.4rem; }
+            .protocol-grid { grid-template-columns: 1fr; }
+            .page-actions { display: flex; gap: 0.5rem; width: 100%; }
+            .page-actions .btn { flex: 1; }
             .modal-overlay { align-items: flex-end; padding: 0; }
-            .modal-box { border-radius: var(--radius-lg) var(--radius-lg) 0 0; transform: translateY(100%); }
+            .modal-box { border-radius: var(--radius-xl) var(--radius-xl) 0 0; max-height: 85vh; max-height: 85dvh; transform: translateY(100%); }
             .modal-overlay.active .modal-box { transform: translateY(0); }
+            .server-bar { gap: 1rem; }
+            .search-box input { max-width: 100%; }
+        }
+        @media (min-width: 769px) {
+            .user-cards { display: none; }
+        }
+        @media (max-width: 768px) {
+            .user-cards { display: flex; }
         }
     </style>
 </head>
 <body>
     <div id="toast-container"></div>
 
-    <!-- LOADING SCREEN -->
-    <div id="loading-view" style="display:flex; align-items:center; justify-content:center; min-height:100vh;">
-        <div style="font-size:4rem; filter: drop-shadow(0 0 20px rgba(212,175,55,0.4)); animation: pulse 1.5s infinite alternate;">🦅</div>
+    <!-- LOADING -->
+    <div id="loading-view">
+        <div style="font-size:4rem; filter:drop-shadow(0 0 25px rgba(212,175,55,0.3)); animation:pulse 1.8s infinite;">🦅</div>
     </div>
 
-    <!-- LOGIN SCREEN -->
+    <!-- LOGIN -->
     <div id="login-view" class="hidden">
         <div class="glass-card login-card">
             <div class="login-brand">🦅</div>
             <h1 class="login-title gradient-text">FirewallFalcon</h1>
-            <p class="login-subtitle">Admin Control Panel</p>
+            <p class="login-subtitle">Control Panel</p>
             <form id="login-form">
-                <div class="input-group" style="text-align:left;">
-                    <label>Username</label>
-                    <div class="input-wrapper"><input type="text" id="login-user" required autocomplete="username"></div>
-                </div>
-                <div class="input-group" style="text-align:left;">
-                    <label>Password</label>
-                    <div class="input-wrapper"><input type="password" id="login-pass" required autocomplete="current-password"></div>
-                </div>
-                <button type="submit" id="btn-login-submit" class="btn btn-primary" style="width:100%; margin-top:1.5rem; padding:0.85rem;">Authenticate</button>
+                <div class="input-group" style="text-align:left;"><label>Username</label><input type="text" id="login-user" required autocomplete="username"></div>
+                <div class="input-group" style="text-align:left;"><label>Password</label><input type="password" id="login-pass" required autocomplete="current-password"></div>
+                <button type="submit" id="btn-login" class="btn btn-primary" style="width:100%; margin-top:1rem; padding:0.85rem;">Sign In</button>
             </form>
         </div>
     </div>
 
-    <!-- MAIN APP SCREEN -->
+    <!-- APP -->
     <div id="app-view" class="hidden">
-        <div class="mobile-bar">
+        <!-- Mobile Header -->
+        <div class="mobile-header">
             <div style="display:flex; align-items:center; gap:0.5rem;">
-                <span style="font-size:1.2rem;">🦅</span>
-                <span class="gradient-text" style="font-weight:600; font-size:1rem; letter-spacing:0.05em; text-transform:uppercase;">FirewallFalcon</span>
+                <span style="font-size:1.3rem;">🦅</span>
+                <span class="gradient-text" style="font-weight:700; font-size:0.9rem; letter-spacing:0.06em; text-transform:uppercase;">FirewallFalcon</span>
             </div>
-            <button class="btn-icon" id="btn-mobile-toggle" style="border:none; background:transparent;">☰</button>
+            <button class="btn-icon" id="btn-logout-mobile" style="border:none; background:transparent; font-size:0.8rem; color:var(--text-dim);" title="Log Out">⏻</button>
         </div>
 
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <span style="font-size:1.5rem;">🦅</span>
-                <span class="sidebar-brand gradient-text">FirewallFalcon</span>
-            </div>
+        <!-- Bottom Nav (mobile) -->
+        <nav class="bottom-nav" id="bottom-nav">
+            <div class="bottom-nav-item active" data-tab="dashboard"><span class="bnav-icon">📊</span><span class="bnav-label">Home</span></div>
+            <div class="bottom-nav-item" data-tab="users"><span class="bnav-icon">👥</span><span class="bnav-label">Accounts</span></div>
+            <div class="bottom-nav-item admin-only" data-tab="resellers"><span class="bnav-icon">🤝</span><span class="bnav-label">Resellers</span></div>
+            <div class="bottom-nav-item admin-only" data-tab="protocols"><span class="bnav-icon">📡</span><span class="bnav-label">Services</span></div>
+            <div class="bottom-nav-item admin-only" data-tab="settings"><span class="bnav-icon">⚙️</span><span class="bnav-label">Settings</span></div>
+        </nav>
+
+        <!-- Desktop Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header"><span style="font-size:1.5rem;">🦅</span><span class="sidebar-brand gradient-text">FirewallFalcon</span></div>
             <nav class="sidebar-nav" id="sidebar-nav">
-                <div class="nav-item active" data-tab="dashboard"><span style="font-size:1.2rem; opacity:0.8;">📊</span> Dashboard</div>
-                <div class="nav-item" data-tab="users"><span style="font-size:1.2rem; opacity:0.8;">👥</span> Accounts</div>
-                <div class="nav-item admin-only" data-tab="resellers"><span style="font-size:1.2rem; opacity:0.8;">🤝</span> Resellers</div>
-                <div class="nav-item admin-only" data-tab="protocols"><span style="font-size:1.2rem; opacity:0.8;">📡</span> Services</div>
-                <div class="nav-item admin-only" data-tab="settings"><span style="font-size:1.2rem; opacity:0.8;">⚙️</span> Settings</div>
+                <div class="nav-item active" data-tab="dashboard"><span class="nav-icon">📊</span> Dashboard</div>
+                <div class="nav-item" data-tab="users"><span class="nav-icon">👥</span> Accounts</div>
+                <div class="nav-item admin-only" data-tab="resellers"><span class="nav-icon">🤝</span> Resellers</div>
+                <div class="nav-item admin-only" data-tab="protocols"><span class="nav-icon">📡</span> Services</div>
+                <div class="nav-item admin-only" data-tab="settings"><span class="nav-icon">⚙️</span> Settings</div>
             </nav>
             <div class="sidebar-footer">
-                <div id="sidebar-role-badge" style="text-align:center; margin-bottom:0.75rem; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-dim);"></div>
+                <div class="sidebar-role" id="sidebar-role"></div>
                 <button class="btn btn-secondary" id="btn-logout" style="width:100%;">Log Out</button>
             </div>
         </aside>
 
+        <!-- MAIN CONTENT -->
         <main class="main-content">
-            <!-- DASHBOARD TAB -->
+            <!-- DASHBOARD -->
             <section id="tab-dashboard" class="tab-page">
-                <div class="page-header">
-                    <div>
-                        <h1 class="page-title">Overview</h1>
-                        <p style="color:var(--text-sub); font-size:0.85rem;">Real-time system telemetry and metrics</p>
-                    </div>
-                    <button class="btn btn-secondary" onclick="loadDashboard()">Refresh</button>
-                </div>
-                <!-- Reseller info bar (shown only for resellers) -->
-                <div id="reseller-info-bar" class="glass-card hidden" style="padding:1.25rem 1.75rem; margin-bottom:2rem; display:flex; gap:2rem; flex-wrap:wrap;">
-                    <div class="info-item"><span class="info-label">Quota</span><span class="info-val" id="ri-quota">--</span></div>
-                    <div class="info-item"><span class="info-label">Expiry</span><span class="info-val" id="ri-expiry">--</span></div>
+                <div class="page-header"><div><h1 class="page-title">Dashboard</h1><p class="page-sub">System overview</p></div></div>
+                <div id="reseller-info-bar" class="glass-card reseller-bar hidden">
+                    <div class="reseller-stat"><span class="reseller-stat-label">Quota</span><span class="reseller-stat-val" id="ri-quota">--</span></div>
+                    <div class="reseller-stat"><span class="reseller-stat-label">Expires</span><span class="reseller-stat-val" id="ri-expiry">--</span></div>
                 </div>
                 <div class="stats-grid">
-                    <div class="glass-card stat-card">
-                        <span class="stat-label">Total Accounts</span>
-                        <div class="stat-value" id="dash-total-users">--</div>
-                        <span class="stat-desc" id="dash-users-desc">Managed SSH users</span>
-                    </div>
-                    <div class="glass-card stat-card">
-                        <span class="stat-label">Active Sessions</span>
-                        <div class="stat-value gradient-text" id="dash-online-users" style="font-weight:500;">--</div>
-                        <span class="stat-desc">Live connections</span>
-                    </div>
-                    <div class="glass-card stat-card">
-                        <span class="stat-label">Memory Utilization</span>
-                        <div class="stat-value" id="dash-ram-percent">--%</div>
-                        <span class="stat-desc" id="dash-ram-detail">-- / -- MB</span>
-                    </div>
-                    <div class="glass-card stat-card">
-                        <span class="stat-label">Load Average</span>
-                        <div class="stat-value" id="dash-cpu-load">--</div>
-                        <span class="stat-desc">1 minute metric</span>
-                    </div>
+                    <div class="glass-card stat-card"><div class="stat-label">Accounts</div><div class="stat-value gradient-text" id="d-users">--</div><div class="stat-desc" id="d-users-desc">Managed users</div></div>
+                    <div class="glass-card stat-card"><div class="stat-label">Online</div><div class="stat-value" style="color:var(--accent-teal);" id="d-online">--</div><div class="stat-desc">Active sessions</div></div>
+                    <div class="glass-card stat-card"><div class="stat-label">Memory</div><div class="stat-value" id="d-ram">--%</div><div class="stat-desc" id="d-ram-d">-- / -- MB</div></div>
+                    <div class="glass-card stat-card"><div class="stat-label">CPU Load</div><div class="stat-value" id="d-cpu">--</div><div class="stat-desc">1 min average</div></div>
                 </div>
-                <div class="glass-card server-info-bar" id="server-info-section">
-                    <div class="info-item"><span class="info-label">IPv4</span><span class="info-val mono" id="server-ip">--</span></div>
-                    <div class="info-item"><span class="info-label">OS</span><span class="info-val" id="server-os">--</span></div>
-                    <div class="info-item"><span class="info-label">Uptime</span><span class="info-val" id="server-uptime">--</span></div>
+                <div class="glass-card server-bar" id="server-info">
+                    <div class="info-chip"><span class="info-chip-label">IP</span><span class="info-chip-val mono" id="s-ip">--</span></div>
+                    <div class="info-chip"><span class="info-chip-label">OS</span><span class="info-chip-val" id="s-os">--</span></div>
+                    <div class="info-chip"><span class="info-chip-label">Uptime</span><span class="info-chip-val" id="s-up">--</span></div>
                 </div>
-                <div id="protocols-section">
-                    <h2 style="font-size:1.1rem; font-weight:500; margin-bottom:1.25rem; letter-spacing:0.02em;">Service Status</h2>
-                    <div class="protocol-grid" id="dash-protocols-grid"></div>
-                </div>
+                <div id="dash-proto-section"><h2 style="font-size:1rem; font-weight:600; margin-bottom:1rem;">Services</h2><div class="protocol-grid" id="d-protos"></div></div>
             </section>
 
-            <!-- USERS TAB -->
+            <!-- USERS -->
             <section id="tab-users" class="tab-page hidden">
                 <div class="page-header">
-                    <div>
-                        <h1 class="page-title">Accounts</h1>
-                        <p style="color:var(--text-sub); font-size:0.85rem;">Access control and quota management</p>
-                    </div>
-                    <div class="page-actions">
-                        <button class="btn btn-secondary" onclick="openBulkCreateModal()">Bulk Create</button>
-                        <button class="btn btn-primary" onclick="openCreateUserModal()">New Account</button>
-                    </div>
+                    <div><h1 class="page-title">Accounts</h1><p class="page-sub">Manage SSH users</p></div>
+                    <div class="page-actions"><button class="btn btn-secondary btn-sm" onclick="openModal('modal-bulk')">Bulk</button><button class="btn btn-primary btn-sm" onclick="openCreateUser()">+ New</button></div>
                 </div>
-                <div style="margin-bottom:1.5rem; max-width:400px;">
-                    <div class="input-wrapper"><input type="text" id="user-search-input" placeholder="Search by username..." onkeyup="filterUsers()"></div>
-                </div>
-                <div class="glass-card desktop-table-wrapper" style="padding:0;">
-                    <div class="table-responsive">
-                        <table>
-                            <thead><tr>
-                                <th>Username</th><th>Password</th><th>Expiry</th><th>Sessions</th>
-                                <th>Total BW</th><th>Daily BW</th><th>Status</th>
-                                <th id="th-owner" class="admin-only">Owner</th>
-                                <th style="text-align:right;">Actions</th>
-                            </tr></thead>
-                            <tbody id="users-table-body"></tbody>
-                        </table>
+                <div class="search-box"><input type="text" id="search-users" placeholder="Search users..." oninput="filterUsers()"></div>
+                <!-- Desktop Table -->
+                <div class="glass-card table-wrap" style="padding:0; overflow:hidden;">
+                    <div style="overflow-x:auto;">
+                        <table><thead><tr>
+                            <th>User</th><th>Pass</th><th>Expiry</th><th>Sessions</th><th>BW</th><th>Status</th>
+                            <th class="admin-only">Owner</th><th style="text-align:right;">Actions</th>
+                        </tr></thead><tbody id="u-tbody"></tbody></table>
                     </div>
                 </div>
-                <div class="users-mobile-grid" id="users-mobile-grid"></div>
+                <!-- Mobile Cards -->
+                <div class="user-cards" id="u-cards"></div>
             </section>
 
-            <!-- RESELLERS TAB (admin only) -->
+            <!-- RESELLERS -->
             <section id="tab-resellers" class="tab-page hidden">
-                <div class="page-header">
-                    <div>
-                        <h1 class="page-title">Resellers</h1>
-                        <p style="color:var(--text-sub); font-size:0.85rem;">Manage reseller accounts and quotas</p>
-                    </div>
-                    <div class="page-actions">
-                        <button class="btn btn-primary" onclick="openCreateResellerModal()">New Reseller</button>
-                    </div>
+                <div class="page-header"><div><h1 class="page-title">Resellers</h1><p class="page-sub">Manage reseller accounts</p></div>
+                    <div class="page-actions"><button class="btn btn-primary btn-sm" onclick="openModal('modal-create-reseller')">+ New</button></div>
                 </div>
-                <div class="glass-card desktop-table-wrapper" style="padding:0;">
-                    <div class="table-responsive">
-                        <table>
-                            <thead><tr>
-                                <th>Username</th><th>Password</th><th>Expiry</th>
-                                <th>Users</th><th>Status</th><th style="text-align:right;">Actions</th>
-                            </tr></thead>
-                            <tbody id="resellers-table-body"></tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="users-mobile-grid" id="resellers-mobile-grid"></div>
+                <div class="glass-card table-wrap" style="padding:0; overflow:hidden;"><div style="overflow-x:auto;">
+                    <table><thead><tr><th>Username</th><th>Password</th><th>Expiry</th><th>Users</th><th>Status</th><th style="text-align:right;">Actions</th></tr></thead><tbody id="r-tbody"></tbody></table>
+                </div></div>
+                <div class="user-cards" id="r-cards"></div>
             </section>
 
-            <!-- PROTOCOLS TAB -->
+            <!-- PROTOCOLS -->
             <section id="tab-protocols" class="tab-page hidden">
-                <div class="page-header">
-                    <div><h1 class="page-title">Services</h1><p style="color:var(--text-sub); font-size:0.85rem;">Protocol daemon management</p></div>
-                    <button class="btn btn-secondary" onclick="loadProtocols()">Refresh</button>
-                </div>
-                <div class="protocol-grid" id="protocols-full-grid"></div>
+                <div class="page-header"><div><h1 class="page-title">Services</h1><p class="page-sub">Protocol daemons</p></div></div>
+                <div class="protocol-grid" id="p-grid"></div>
             </section>
 
-            <!-- SETTINGS TAB -->
+            <!-- SETTINGS -->
             <section id="tab-settings" class="tab-page hidden">
-                <div class="page-header">
-                    <div><h1 class="page-title">Settings</h1><p style="color:var(--text-sub); font-size:0.85rem;">Security and authentication</p></div>
-                </div>
-                <div class="glass-card" style="max-width:600px; padding:2.5rem;">
+                <div class="page-header"><div><h1 class="page-title">Settings</h1><p class="page-sub">Panel configuration</p></div></div>
+                <div class="glass-card" style="max-width:520px; padding:2rem;">
                     <form id="settings-form">
-                        <div class="input-group"><label>Current Username</label><div class="input-wrapper"><input type="text" id="setting-current-user" readonly disabled style="opacity:0.5;"></div></div>
-                        <div class="input-group"><label>Verification (Required)</label><div class="input-wrapper"><input type="password" id="setting-curr-pass" placeholder="Current admin password" required></div></div>
-                        <div style="height:1px; background:var(--border-subtle); margin:2rem 0;"></div>
-                        <div class="input-group"><label>New Username</label><div class="input-wrapper"><input type="text" id="setting-new-user" placeholder="Leave blank to keep current"></div></div>
-                        <div class="input-group"><label>New Password</label><div class="input-wrapper"><input type="password" id="setting-new-pass" placeholder="Leave blank to keep current"></div></div>
-                        <div class="input-group">
-                            <label>Secret URL Path</label>
-                            <div class="input-wrapper"><input type="text" id="setting-secret-path" placeholder="e.g. secret123"></div>
-                            <span style="font-size:0.75rem; color:var(--text-dim); margin-top:0.5rem; line-height:1.4;">
-                                Hides the panel from port scanners.<br><span class="mono" id="setting-url-preview" style="color:var(--accent-gold);">http://IP:44380/</span>
-                            </span>
-                        </div>
-                        <div style="display:flex; justify-content:flex-end; margin-top:2rem;"><button type="submit" class="btn btn-primary">Apply Changes</button></div>
+                        <div class="input-group"><label>Current Username</label><input type="text" id="s-user" readonly disabled style="opacity:0.5;"></div>
+                        <div class="input-group"><label>Current Password (required)</label><input type="password" id="s-curr-pass" required placeholder="Enter to verify"></div>
+                        <div style="height:1px; background:var(--border-subtle); margin:1.5rem 0;"></div>
+                        <div class="input-group"><label>New Username</label><input type="text" id="s-new-user" placeholder="Leave blank to keep"></div>
+                        <div class="input-group"><label>New Password</label><input type="password" id="s-new-pass" placeholder="Leave blank to keep"></div>
+                        <div class="input-group"><label>Secret URL Path</label><input type="text" id="s-secret" placeholder="e.g. mysecret"><p style="font-size:0.72rem; color:var(--text-dim); margin-top:0.4rem;">URL: <span class="mono" id="s-url-preview" style="color:var(--accent-gold);">--</span></p></div>
+                        <div style="text-align:right; margin-top:1.5rem;"><button type="submit" class="btn btn-primary">Save Changes</button></div>
                     </form>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- MODAL: CREATE USER -->
+    <!-- MODALS -->
     <div class="modal-overlay" id="modal-create-user"><div class="modal-box">
         <div class="modal-header"><h3 class="modal-title">New Account</h3><button class="btn-icon" onclick="closeModal('modal-create-user')" style="border:none;">✕</button></div>
-        <form id="form-create-user">
-            <div class="input-group"><label>Username</label><input type="text" id="create-username" required pattern="[a-zA-Z0-9_]+" title="Alphanumeric & underscore only"></div>
-            <div class="input-group"><label>Password</label><div style="display:flex; gap:0.5rem;"><input type="text" id="create-password" required><button type="button" class="btn btn-secondary" onclick="generateRandomPass('create-password')">Gen</button></div></div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-                <div class="input-group"><label>Duration (Days)</label><input type="number" id="create-days" value="30" min="1" required></div>
-                <div class="input-group"><label>Concurrent Logins</label><input type="number" id="create-conn" value="1" min="1" required></div>
+        <form id="f-create-user">
+            <div class="input-group"><label>Username</label><input type="text" id="cu-name" required pattern="[a-zA-Z0-9_]+"></div>
+            <div class="input-group"><label>Password</label><div style="display:flex;gap:0.5rem;"><input type="text" id="cu-pass" required style="flex:1;"><button type="button" class="btn btn-secondary btn-sm" onclick="genPass('cu-pass')">Gen</button></div></div>
+            <div class="input-row">
+                <div class="input-group"><label>Days</label><input type="number" id="cu-days" value="30" min="1" required></div>
+                <div class="input-group"><label>Devices</label><input type="number" id="cu-conn" value="1" min="1" required></div>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-                <div class="input-group"><label>Total Bandwidth (GB)</label><input type="number" step="0.1" id="create-bw" value="0" min="0" placeholder="0 = ∞"></div>
-                <div class="input-group"><label>Daily Bandwidth (GB)</label><input type="number" step="0.1" id="create-daily-bw" value="0" min="0" placeholder="0 = ∞"></div>
+            <div class="input-row">
+                <div class="input-group"><label>Total BW (GB)</label><input type="number" step="0.1" id="cu-bw" value="0" min="0"></div>
+                <div class="input-group"><label>Daily BW (GB)</label><input type="number" step="0.1" id="cu-dbw" value="0" min="0"></div>
             </div>
-            <div id="create-user-quota-info" class="hidden" style="padding:0.75rem 1rem; background:rgba(212,175,55,0.05); border:1px solid var(--border-glow); border-radius:var(--radius-md); margin-bottom:1rem; font-size:0.8rem; color:var(--accent-gold-light);"></div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeModal('modal-create-user')">Cancel</button><button type="submit" class="btn btn-primary">Provision</button></div>
+            <div id="cu-quota" class="hidden" style="padding:0.65rem 1rem; background:var(--accent-gold-dim); border:1px solid var(--border-glow); border-radius:var(--radius-md); margin-bottom:1rem; font-size:0.78rem; color:var(--accent-gold-light);"></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeModal('modal-create-user')">Cancel</button><button type="submit" class="btn btn-primary">Create</button></div>
         </form>
     </div></div>
 
-    <!-- MODAL: EDIT USER -->
     <div class="modal-overlay" id="modal-edit-user"><div class="modal-box">
-        <div class="modal-header"><h3 class="modal-title">Modify Account</h3><button class="btn-icon" onclick="closeModal('modal-edit-user')" style="border:none;">✕</button></div>
-        <form id="form-edit-user">
-            <input type="hidden" id="edit-username-hidden">
-            <div class="input-group"><label>Username</label><input type="text" id="edit-username-disp" disabled style="opacity:0.5; border:none; padding-left:0;"></div>
-            <div class="input-group"><label>New Password (Optional)</label><div style="display:flex; gap:0.5rem;"><input type="text" id="edit-password"><button type="button" class="btn btn-secondary" onclick="generateRandomPass('edit-password')">Gen</button></div></div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-                <div class="input-group"><label>Override Expiry Days</label><input type="number" id="edit-days" min="1" placeholder="Unchanged"></div>
-                <div class="input-group"><label>Concurrent Logins</label><input type="number" id="edit-conn" min="1" required></div>
+        <div class="modal-header"><h3 class="modal-title">Edit Account</h3><button class="btn-icon" onclick="closeModal('modal-edit-user')" style="border:none;">✕</button></div>
+        <form id="f-edit-user">
+            <input type="hidden" id="eu-name-h">
+            <div class="input-group"><label>Username</label><input type="text" id="eu-name" disabled style="opacity:0.5;"></div>
+            <div class="input-group"><label>New Password</label><div style="display:flex;gap:0.5rem;"><input type="text" id="eu-pass" style="flex:1;" placeholder="Unchanged"><button type="button" class="btn btn-secondary btn-sm" onclick="genPass('eu-pass')">Gen</button></div></div>
+            <div class="input-row">
+                <div class="input-group"><label>Days</label><input type="number" id="eu-days" min="1" placeholder="Unchanged"></div>
+                <div class="input-group"><label>Devices</label><input type="number" id="eu-conn" min="1" required></div>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-                <div class="input-group"><label>Total Bandwidth (GB)</label><input type="number" step="0.1" id="edit-bw" min="0"></div>
-                <div class="input-group"><label>Daily Bandwidth (GB)</label><input type="number" step="0.1" id="edit-daily-bw" min="0"></div>
+            <div class="input-row">
+                <div class="input-group"><label>Total BW (GB)</label><input type="number" step="0.1" id="eu-bw" min="0"></div>
+                <div class="input-group"><label>Daily BW (GB)</label><input type="number" step="0.1" id="eu-dbw" min="0"></div>
             </div>
             <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit-user')">Cancel</button><button type="submit" class="btn btn-primary">Update</button></div>
         </form>
     </div></div>
 
-    <!-- MODAL: BULK CREATE -->
-    <div class="modal-overlay" id="modal-bulk-user"><div class="modal-box">
-        <div class="modal-header"><h3 class="modal-title">Bulk Provisioning</h3><button class="btn-icon" onclick="closeModal('modal-bulk-user')" style="border:none;">✕</button></div>
-        <form id="form-bulk-user">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-                <div class="input-group"><label>Prefix</label><input type="text" id="bulk-prefix" value="user" required></div>
-                <div class="input-group"><label>Quantity</label><input type="number" id="bulk-count" value="5" min="1" max="50" required></div>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-                <div class="input-group"><label>Duration (Days)</label><input type="number" id="bulk-days" value="30" min="1" required></div>
-                <div class="input-group"><label>Concurrent Logins</label><input type="number" id="bulk-conn" value="1" min="1" required></div>
-            </div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeModal('modal-bulk-user')">Cancel</button><button type="submit" class="btn btn-primary">Execute Batch</button></div>
+    <div class="modal-overlay" id="modal-bulk"><div class="modal-box">
+        <div class="modal-header"><h3 class="modal-title">Bulk Create</h3><button class="btn-icon" onclick="closeModal('modal-bulk')" style="border:none;">✕</button></div>
+        <form id="f-bulk">
+            <div class="input-row"><div class="input-group"><label>Prefix</label><input type="text" id="b-prefix" value="user" required></div><div class="input-group"><label>Count</label><input type="number" id="b-count" value="5" min="1" max="50" required></div></div>
+            <div class="input-row"><div class="input-group"><label>Days</label><input type="number" id="b-days" value="30" min="1" required></div><div class="input-group"><label>Devices</label><input type="number" id="b-conn" value="1" min="1" required></div></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeModal('modal-bulk')">Cancel</button><button type="submit" class="btn btn-primary">Create Batch</button></div>
         </form>
     </div></div>
 
-    <!-- MODAL: CREATE RESELLER -->
     <div class="modal-overlay" id="modal-create-reseller"><div class="modal-box">
         <div class="modal-header"><h3 class="modal-title">New Reseller</h3><button class="btn-icon" onclick="closeModal('modal-create-reseller')" style="border:none;">✕</button></div>
-        <form id="form-create-reseller">
-            <div class="input-group"><label>Username</label><input type="text" id="reseller-username" required pattern="[a-zA-Z0-9_]+" title="Alphanumeric & underscore only"></div>
-            <div class="input-group"><label>Password</label><div style="display:flex; gap:0.5rem;"><input type="text" id="reseller-password" required><button type="button" class="btn btn-secondary" onclick="generateRandomPass('reseller-password')">Gen</button></div></div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-                <div class="input-group"><label>Duration (Days)</label><input type="number" id="reseller-days" value="30" min="1" required></div>
-                <div class="input-group"><label>Max Users</label><input type="number" id="reseller-max-users" value="10" min="1" required></div>
-            </div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeModal('modal-create-reseller')">Cancel</button><button type="submit" class="btn btn-primary">Create Reseller</button></div>
+        <form id="f-create-r">
+            <div class="input-group"><label>Username</label><input type="text" id="cr-name" required pattern="[a-zA-Z0-9_]+"></div>
+            <div class="input-group"><label>Password</label><div style="display:flex;gap:0.5rem;"><input type="text" id="cr-pass" required style="flex:1;"><button type="button" class="btn btn-secondary btn-sm" onclick="genPass('cr-pass')">Gen</button></div></div>
+            <div class="input-row"><div class="input-group"><label>Days</label><input type="number" id="cr-days" value="30" min="1" required></div><div class="input-group"><label>Max Users</label><input type="number" id="cr-max" value="10" min="1" required></div></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeModal('modal-create-reseller')">Cancel</button><button type="submit" class="btn btn-primary">Create</button></div>
         </form>
     </div></div>
 
-    <!-- MODAL: EDIT RESELLER -->
     <div class="modal-overlay" id="modal-edit-reseller"><div class="modal-box">
         <div class="modal-header"><h3 class="modal-title">Edit Reseller</h3><button class="btn-icon" onclick="closeModal('modal-edit-reseller')" style="border:none;">✕</button></div>
-        <form id="form-edit-reseller">
-            <input type="hidden" id="edit-reseller-username-hidden">
-            <div class="input-group"><label>Username</label><input type="text" id="edit-reseller-username-disp" disabled style="opacity:0.5; border:none; padding-left:0;"></div>
-            <div class="input-group"><label>New Password (Optional)</label><div style="display:flex; gap:0.5rem;"><input type="text" id="edit-reseller-password"><button type="button" class="btn btn-secondary" onclick="generateRandomPass('edit-reseller-password')">Gen</button></div></div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-                <div class="input-group"><label>Extend Days</label><input type="number" id="edit-reseller-days" min="1" placeholder="Unchanged"></div>
-                <div class="input-group"><label>Max Users</label><input type="number" id="edit-reseller-max-users" min="1" required></div>
-            </div>
+        <form id="f-edit-r">
+            <input type="hidden" id="er-name-h">
+            <div class="input-group"><label>Username</label><input type="text" id="er-name" disabled style="opacity:0.5;"></div>
+            <div class="input-group"><label>New Password</label><div style="display:flex;gap:0.5rem;"><input type="text" id="er-pass" style="flex:1;" placeholder="Unchanged"><button type="button" class="btn btn-secondary btn-sm" onclick="genPass('er-pass')">Gen</button></div></div>
+            <div class="input-row"><div class="input-group"><label>Extend Days</label><input type="number" id="er-days" min="1" placeholder="Unchanged"></div><div class="input-group"><label>Max Users</label><input type="number" id="er-max" min="1" required></div></div>
             <div class="modal-footer"><button type="button" class="btn btn-secondary" onclick="closeModal('modal-edit-reseller')">Cancel</button><button type="submit" class="btn btn-primary">Update</button></div>
         </form>
     </div></div>
 
-    <script>
-        let cachedUsers = [];
-        let currentRole = 'admin';
-        let currentUsername = '';
+<script>
+let users=[],role='admin',me_user='';
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmtB=b=>{if(!b||b===0)return'0 MB';const g=b/1073741824;return g>=1?g.toFixed(1)+' GB':(b/1048576).toFixed(0)+' MB';};
+function toast(m,t='info'){const c=document.getElementById('toast-container'),d=document.createElement('div');d.className=`toast ${t}`;d.innerHTML=`<span style="font-weight:700;font-family:var(--font-mono);">${t==='success'?'✓':t==='error'?'✕':'i'}</span>${m}`;c.appendChild(d);setTimeout(()=>d.remove(),3500);}
 
-        function showToast(msg, type = 'info') {
-            const c = document.getElementById('toast-container');
-            const t = document.createElement('div');
-            t.className = `toast ${type}`;
-            const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'i';
-            t.innerHTML = `<span style="font-weight:bold;font-family:var(--font-mono);">${icon}</span> <span>${msg}</span>`;
-            c.appendChild(t);
-            setTimeout(() => t.remove(), 3500);
-        }
+async function api(method,path,body=null){
+    const o={method,credentials:'same-origin',headers:{}};
+    if(body){o.headers['Content-Type']='application/json';o.body=JSON.stringify(body);}
+    const r=await fetch(path,o);
+    if(r.status===401&&path!=='/api/login'){showLogin();throw new Error('Session expired');}
+    const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');return d;
+}
 
-        async function api(method, path, body = null) {
-            const opts = { method, credentials: 'same-origin', headers: {} };
-            if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
-            try {
-                const res = await fetch(path, opts);
-                if (res.status === 401 && path !== '/api/login') { showLoginScreen(); throw new Error('Session expired'); }
-                if (res.status === 403) { const d = await res.json(); throw new Error(d.error || 'Access denied'); }
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || 'Request failed');
-                return data;
-            } catch (err) { throw err; }
-        }
+async function init(){try{const m=await api('GET','/api/me');role=m.role;me_user=m.username;document.getElementById('loading-view').classList.add('hidden');showApp();}catch(e){document.getElementById('loading-view').classList.add('hidden');showLogin();}}
+document.addEventListener('DOMContentLoaded',init);
 
-        async function init() {
-            try {
-                const me = await api('GET', '/api/me');
-                currentRole = me.role;
-                currentUsername = me.username;
-                document.getElementById('loading-view').classList.add('hidden');
-                showMainScreen();
-            } catch (e) {
-                document.getElementById('loading-view').classList.add('hidden');
-                showLoginScreen();
-            }
-        }
-        document.addEventListener('DOMContentLoaded', init);
+function showLogin(){document.getElementById('app-view').classList.add('hidden');document.getElementById('login-view').classList.remove('hidden');}
+function showApp(){document.getElementById('login-view').classList.add('hidden');document.getElementById('app-view').classList.remove('hidden');applyRole();
+    const s=localStorage.getItem('tab')||'dashboard';const adminT=['resellers','protocols','settings'];
+    const t=(role==='reseller'&&adminT.includes(s))?'dashboard':s;switchTab(t);startPoll();}
 
-        function showLoginScreen() {
-            document.getElementById('app-view').classList.add('hidden');
-            document.getElementById('login-view').classList.remove('hidden');
-        }
+function applyRole(){
+    const a=role==='admin';
+    document.querySelectorAll('.admin-only').forEach(e=>{if(a)e.classList.remove('hidden');else e.classList.add('hidden');});
+    if(!a){document.getElementById('reseller-info-bar').classList.remove('hidden');document.getElementById('dash-proto-section').classList.add('hidden');document.getElementById('d-users-desc').textContent='Your users';}
+    else{document.getElementById('reseller-info-bar').classList.add('hidden');document.getElementById('dash-proto-section').classList.remove('hidden');document.getElementById('d-users-desc').textContent='Managed users';}
+    const rb=document.getElementById('sidebar-role');rb.textContent=a?'🛡️ Administrator':`🤝 ${me_user}`;rb.style.color=a?'var(--accent-gold)':'var(--accent-teal)';
+}
 
-        function showMainScreen() {
-            document.getElementById('login-view').classList.add('hidden');
-            document.getElementById('app-view').classList.remove('hidden');
-            applyRoleUI();
-            const savedTab = localStorage.getItem('activeTab') || 'dashboard';
-            // If reseller tries to load an admin-only tab, fall back to dashboard
-            const adminTabs = ['resellers', 'protocols', 'settings'];
-            const tab = (currentRole === 'reseller' && adminTabs.includes(savedTab)) ? 'dashboard' : savedTab;
-            const targetNav = document.querySelector(`.nav-item[data-tab="${tab}"]`);
-            if (targetNav) targetNav.click();
-            startPolling();
-        }
+function switchTab(tab){
+    localStorage.setItem('tab',tab);
+    document.querySelectorAll('.tab-page').forEach(p=>p.classList.add('hidden'));
+    document.getElementById(`tab-${tab}`).classList.remove('hidden');
+    document.querySelectorAll('.nav-item,.bottom-nav-item').forEach(i=>{i.classList.toggle('active',i.dataset.tab===tab);});
+    if(tab==='dashboard')loadDash();else if(tab==='users')loadUsers();else if(tab==='resellers')loadResellers();else if(tab==='protocols')loadProtos();else if(tab==='settings')loadSettings();
+}
 
-        function applyRoleUI() {
-            const isAdmin = currentRole === 'admin';
-            document.querySelectorAll('.admin-only').forEach(el => {
-                if (isAdmin) el.classList.remove('hidden');
-                else el.classList.add('hidden');
-            });
-            // Reseller info bar on dashboard
-            if (!isAdmin) {
-                document.getElementById('reseller-info-bar').classList.remove('hidden');
-                document.getElementById('protocols-section').classList.add('hidden');
-                document.getElementById('dash-users-desc').textContent = 'Your SSH users';
-            } else {
-                document.getElementById('reseller-info-bar').classList.add('hidden');
-                document.getElementById('protocols-section').classList.remove('hidden');
-                document.getElementById('dash-users-desc').textContent = 'Managed SSH users';
-            }
-            // Sidebar role badge
-            const badge = document.getElementById('sidebar-role-badge');
-            badge.textContent = isAdmin ? '🛡️ Administrator' : `🤝 Reseller: ${currentUsername}`;
-            badge.style.color = isAdmin ? 'var(--accent-gold)' : 'var(--accent-teal)';
-        }
+// Nav clicks
+document.querySelectorAll('.nav-item,.bottom-nav-item').forEach(i=>i.addEventListener('click',()=>switchTab(i.dataset.tab)));
+document.getElementById('btn-logout').addEventListener('click',async()=>{try{await api('POST','/api/logout');}catch(e){}showLogin();});
+document.getElementById('btn-logout-mobile').addEventListener('click',async()=>{try{await api('POST','/api/logout');}catch(e){}showLogin();});
 
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const tab = item.getAttribute('data-tab');
-                localStorage.setItem('activeTab', tab);
-                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-                document.querySelectorAll('.tab-page').forEach(p => p.classList.add('hidden'));
-                item.classList.add('active');
-                document.getElementById(`tab-${tab}`).classList.remove('hidden');
-                document.getElementById('sidebar').classList.remove('active');
-                if (tab === 'dashboard') loadDashboard();
-                else if (tab === 'users') loadUsers();
-                else if (tab === 'resellers') loadResellers();
-                else if (tab === 'protocols') loadProtocols();
-                else if (tab === 'settings') loadSettings();
-            });
-        });
+let poll;function startPoll(){if(poll)clearInterval(poll);poll=setInterval(()=>{if(document.getElementById('app-view').classList.contains('hidden'))return;const t=localStorage.getItem('tab')||'dashboard';if(t==='dashboard')loadDash(1);else if(t==='users')loadUsers(1);else if(t==='resellers')loadResellers(1);},5000);}
 
-        let pollInterval = null;
-        function startPolling() {
-            if (pollInterval) clearInterval(pollInterval);
-            pollInterval = setInterval(() => {
-                if (document.getElementById('app-view').classList.contains('hidden')) return;
-                const activeTab = localStorage.getItem('activeTab') || 'dashboard';
-                if (activeTab === 'dashboard') loadDashboard(true);
-                else if (activeTab === 'users') loadUsers(true);
-                else if (activeTab === 'resellers') loadResellers(true);
-                else if (activeTab === 'protocols') loadProtocols(true);
-            }, 5000);
-        }
+// LOGIN
+document.getElementById('login-form').addEventListener('submit',async e=>{e.preventDefault();const b=document.getElementById('btn-login');b.disabled=true;b.textContent='Signing in...';
+    try{const r=await api('POST','/api/login',{username:document.getElementById('login-user').value,password:document.getElementById('login-pass').value});
+    const m=await api('GET','/api/me');role=m.role;me_user=m.username;toast('Welcome back','success');showApp();}catch(e){toast(e.message,'error');}finally{b.disabled=false;b.textContent='Sign In';}});
 
-        document.getElementById('btn-mobile-toggle').addEventListener('click', () => { document.getElementById('sidebar').classList.toggle('active'); });
+// DASHBOARD
+async function loadDash(s){try{const d=await api('GET','/api/dashboard');
+    document.getElementById('d-users').textContent=d.user_count;document.getElementById('d-online').textContent=d.online_sessions;
+    document.getElementById('d-ram').textContent=d.ram_percent+'%';document.getElementById('d-ram-d').textContent=`${d.ram_used_mb} / ${d.ram_total_mb} MB`;
+    document.getElementById('d-cpu').textContent=d.cpu_load_1m;document.getElementById('s-ip').textContent=d.server_ip;
+    document.getElementById('s-os').textContent=d.os_name;document.getElementById('s-up').textContent=d.uptime;
+    if(d.reseller_info){document.getElementById('ri-quota').textContent=`${d.reseller_info.created_users} / ${d.reseller_info.max_users}`;document.getElementById('ri-expiry').textContent=d.reseller_info.expire_date;}
+    if(d.protocols&&d.protocols.length)renderProtos(d.protocols,'d-protos');
+}catch(e){if(!s)toast('Dashboard error','error');}}
 
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btn-login-submit');
-            btn.disabled = true; btn.textContent = 'Authenticating...';
-            try {
-                const res = await api('POST', '/api/login', {
-                    username: document.getElementById('login-user').value,
-                    password: document.getElementById('login-pass').value
-                });
-                currentRole = res.role || 'admin';
-                const me = await api('GET', '/api/me');
-                currentRole = me.role; currentUsername = me.username;
-                showToast('Authentication successful', 'success');
-                showMainScreen();
-            } catch (err) {
-                showToast(err.message || 'Authentication failed', 'error');
-            } finally { btn.disabled = false; btn.textContent = 'Authenticate'; }
-        });
+// USERS
+async function loadUsers(s){try{const d=await api('GET','/api/users');users=d.users||[];const si=document.getElementById('search-users');if(document.activeElement!==si||!si.value)filterUsers();}catch(e){if(!s)toast('Failed to load','error');}}
+function filterUsers(){const q=document.getElementById('search-users').value.toLowerCase();renderUsers(users.filter(u=>u.username.toLowerCase().includes(q)));}
 
-        document.getElementById('btn-logout').addEventListener('click', async () => {
-            try { await api('POST', '/api/logout'); } catch(e){}
-            currentRole = 'admin'; currentUsername = '';
-            showLoginScreen();
-        });
+function renderUsers(list){
+    const tb=document.getElementById('u-tbody'),cards=document.getElementById('u-cards');tb.innerHTML='';cards.innerHTML='';
+    const isA=role==='admin';
+    if(!list.length){tb.innerHTML=`<tr><td colspan="${isA?8:7}" style="text-align:center;color:var(--text-dim);padding:2.5rem;">No accounts found</td></tr>`;cards.innerHTML='<div class="glass-card" style="text-align:center;color:var(--text-dim);padding:2.5rem;">No accounts</div>';return;}
 
-        // --- DASHBOARD ---
-        async function loadDashboard(silent = false) {
-            try {
-                const data = await api('GET', '/api/dashboard');
-                document.getElementById('dash-total-users').textContent = data.user_count;
-                document.getElementById('dash-online-users').textContent = data.online_sessions;
-                document.getElementById('dash-ram-percent').textContent = data.ram_percent + '%';
-                document.getElementById('dash-ram-detail').textContent = `${data.ram_used_mb} / ${data.ram_total_mb} MB`;
-                document.getElementById('dash-cpu-load').textContent = data.cpu_load_1m;
-                document.getElementById('server-ip').textContent = data.server_ip;
-                document.getElementById('server-os').textContent = data.os_name;
-                document.getElementById('server-uptime').textContent = data.uptime;
-                if (data.reseller_info) {
-                    document.getElementById('ri-quota').textContent = `${data.reseller_info.created_users} / ${data.reseller_info.max_users} users`;
-                    document.getElementById('ri-expiry').textContent = data.reseller_info.expire_date;
-                }
-                if (data.protocols && data.protocols.length > 0) renderProtocols(data.protocols, 'dash-protocols-grid');
-            } catch (e) { if (e.message !== 'Session expired' && !silent) showToast('Telemetry fetch failed', 'error'); }
-        }
+    list.forEach(u=>{
+        const badge=u.is_expired?'<span class="badge badge-red">Expired</span>':u.is_locked?'<span class="badge badge-yellow">Locked</span>':'<span class="badge badge-green">Active</span>';
+        const bw=u.bandwidth_gb>0?`${fmtB(u.total_used_bytes)}/${u.bandwidth_gb}G`:`${fmtB(u.total_used_bytes)}/∞`;
 
-        // --- USERS ---
-        async function loadUsers(silent = false) {
-            try {
-                const data = await api('GET', '/api/users');
-                cachedUsers = data.users || [];
-                const searchInput = document.getElementById('user-search-input');
-                if (document.activeElement !== searchInput || searchInput.value === '') filterUsers();
-            } catch (e) { if (e.message !== 'Session expired' && !silent) showToast('Directory sync failed', 'error'); }
-        }
+        // Desktop row
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td class="mono" style="font-weight:600;color:var(--accent-gold-light);">${esc(u.username)}</td>
+            <td><span class="mono" style="color:var(--text-sub);font-size:0.8rem;" id="p-${u.username}">••••••</span> <span style="cursor:pointer;font-size:0.75rem;" onclick="togglePwd('p-${u.username}','${esc(u.password)}')">👁</span></td>
+            <td class="mono" style="font-size:0.78rem;">${u.expire_date}</td>
+            <td><span style="color:${u.online_sessions?'var(--accent-teal)':'inherit'};font-weight:600;">${u.online_sessions}</span>/${u.conn_limit}</td>
+            <td class="mono" style="font-size:0.78rem;">${bw}</td>
+            <td>${badge}</td>
+            ${isA?`<td><span class="badge ${u.owner==='admin'?'badge-yellow':'badge-teal'}">${esc(u.owner||'admin')}</span></td>`:''}
+            <td><div class="td-actions">
+                <button class="btn-icon" title="Copy" onclick="copyAcct('${esc(u.username)}','${esc(u.password)}','${u.expire_date}',${u.bandwidth_gb},${u.daily_bandwidth_gb},${u.conn_limit})">📋</button>
+                <button class="btn-icon" title="Edit" onclick="editUser('${esc(u.username)}',${u.conn_limit},${u.bandwidth_gb},${u.daily_bandwidth_gb})">✏️</button>
+                <button class="btn-icon" title="Renew" onclick="renewUser('${esc(u.username)}')">🔄</button>
+                ${u.is_locked?`<button class="btn-icon" title="Unlock" onclick="lockUser('${esc(u.username)}',0)">🔓</button>`:`<button class="btn-icon" title="Lock" onclick="lockUser('${esc(u.username)}',1)">🔒</button>`}
+                <button class="btn-icon" title="Delete" style="color:var(--danger);" onclick="delUser('${esc(u.username)}')">🗑</button>
+            </div></td>`;
+        tb.appendChild(tr);
 
-        function filterUsers() {
-            const query = document.getElementById('user-search-input').value.toLowerCase();
-            const filtered = cachedUsers.filter(u => u.username.toLowerCase().includes(query));
-            renderUsers(filtered);
-        }
+        // Mobile card
+        const c=document.createElement('div');c.className='glass-card user-card';
+        c.innerHTML=`<div class="user-card-top"><span class="user-card-name">${esc(u.username)}</span>${badge}</div>
+            <div class="user-card-grid">
+                <div class="user-card-field"><span class="ucf-label">Password</span><span class="ucf-value"><span class="mono" id="mp-${u.username}">••••••</span> <span style="cursor:pointer;" onclick="togglePwd('mp-${u.username}','${esc(u.password)}')">👁</span></span></div>
+                <div class="user-card-field"><span class="ucf-label">Expiry</span><span class="ucf-value mono">${u.expire_date}</span></div>
+                <div class="user-card-field"><span class="ucf-label">Sessions</span><span class="ucf-value"><b style="color:${u.online_sessions?'var(--accent-teal)':'inherit'}">${u.online_sessions}</b> / ${u.conn_limit}</span></div>
+                <div class="user-card-field"><span class="ucf-label">Bandwidth</span><span class="ucf-value mono" style="font-size:0.78rem;">${bw}</span></div>
+                ${isA?`<div class="user-card-field"><span class="ucf-label">Owner</span><span class="badge ${u.owner==='admin'?'badge-yellow':'badge-teal'}" style="width:fit-content;">${esc(u.owner||'admin')}</span></div>`:''}
+            </div>
+            <div class="user-card-actions">
+                <button class="btn btn-secondary btn-sm" onclick="copyAcct('${esc(u.username)}','${esc(u.password)}','${u.expire_date}',${u.bandwidth_gb},${u.daily_bandwidth_gb},${u.conn_limit})">📋 Copy</button>
+                <button class="btn btn-secondary btn-sm" onclick="editUser('${esc(u.username)}',${u.conn_limit},${u.bandwidth_gb},${u.daily_bandwidth_gb})">✏️ Edit</button>
+                ${u.is_locked?`<button class="btn btn-secondary btn-sm" onclick="lockUser('${esc(u.username)}',0)">🔓 Unlock</button>`:`<button class="btn btn-secondary btn-sm" onclick="lockUser('${esc(u.username)}',1)">🔒 Lock</button>`}
+                <button class="btn btn-danger btn-sm" onclick="delUser('${esc(u.username)}')">🗑 Delete</button>
+            </div>`;
+        cards.appendChild(c);
+    });
+}
 
-        function renderUsers(users) {
-            const tbody = document.getElementById('users-table-body');
-            const mobileGrid = document.getElementById('users-mobile-grid');
-            tbody.innerHTML = ''; mobileGrid.innerHTML = '';
-            const isAdmin = currentRole === 'admin';
+// RESELLERS
+async function loadResellers(s){try{const d=await api('GET','/api/resellers');renderResellers(d.resellers||[]);}catch(e){if(!s)toast('Failed','error');}}
+function renderResellers(list){
+    const tb=document.getElementById('r-tbody'),cards=document.getElementById('r-cards');tb.innerHTML='';cards.innerHTML='';
+    if(!list.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:2.5rem;">No resellers</td></tr>';cards.innerHTML='<div class="glass-card" style="text-align:center;color:var(--text-dim);padding:2.5rem;">No resellers</div>';return;}
+    list.forEach(r=>{
+        const badge=r.is_expired?'<span class="badge badge-red">Expired</span>':!r.enabled?'<span class="badge badge-gray">Disabled</span>':'<span class="badge badge-green">Active</span>';
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td class="mono" style="font-weight:600;color:var(--accent-teal);">${esc(r.username)}</td>
+            <td><span class="mono" style="color:var(--text-sub);font-size:0.8rem;" id="rp-${r.username}">••••••</span> <span style="cursor:pointer;font-size:0.75rem;" onclick="togglePwd('rp-${r.username}','${esc(r.password)}')">👁</span></td>
+            <td class="mono" style="font-size:0.78rem;">${r.expire_date}</td>
+            <td><span style="color:var(--accent-gold);font-weight:600;">${r.created_users}</span> / ${r.max_users}</td>
+            <td>${badge}</td>
+            <td><div class="td-actions">
+                <button class="btn-icon" title="Edit" onclick="editReseller('${esc(r.username)}',${r.max_users})">✏️</button>
+                <button class="btn-icon" title="${r.enabled?'Disable':'Enable'}" onclick="toggleR('${esc(r.username)}')">${r.enabled?'🔒':'🔓'}</button>
+                <button class="btn-icon" title="Delete" style="color:var(--danger);" onclick="delReseller('${esc(r.username)}',${r.created_users})">🗑</button>
+            </div></td>`;
+        tb.appendChild(tr);
+        const c=document.createElement('div');c.className='glass-card user-card';
+        c.innerHTML=`<div class="user-card-top"><span class="user-card-name" style="color:var(--accent-teal);">${esc(r.username)}</span>${badge}</div>
+            <div class="user-card-grid">
+                <div class="user-card-field"><span class="ucf-label">Password</span><span class="ucf-value"><span class="mono" id="mrp-${r.username}">••••••</span> <span style="cursor:pointer;" onclick="togglePwd('mrp-${r.username}','${esc(r.password)}')">👁</span></span></div>
+                <div class="user-card-field"><span class="ucf-label">Expiry</span><span class="ucf-value mono">${r.expire_date}</span></div>
+                <div class="user-card-field"><span class="ucf-label">Users</span><span class="ucf-value"><b style="color:var(--accent-gold);">${r.created_users}</b> / ${r.max_users}</span></div>
+            </div>
+            <div class="user-card-actions">
+                <button class="btn btn-secondary btn-sm" onclick="editReseller('${esc(r.username)}',${r.max_users})">✏️ Edit</button>
+                <button class="btn btn-secondary btn-sm" onclick="toggleR('${esc(r.username)}')">${r.enabled?'🔒 Disable':'🔓 Enable'}</button>
+                <button class="btn btn-danger btn-sm" onclick="delReseller('${esc(r.username)}',${r.created_users})">🗑 Delete</button>
+                <button class="btn btn-secondary btn-sm" onclick="copyText('${esc(r.username)}:${esc(r.password)}')">📋 Copy</button>
+            </div>`;
+        cards.appendChild(c);
+    });
+}
 
-            if (users.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 9 : 8}" style="text-align:center; color:var(--text-dim); padding:3rem;">No records found</td></tr>`;
-                mobileGrid.innerHTML = `<div class="glass-card" style="text-align:center; color:var(--text-dim); padding:3rem;">No records found</div>`;
-                return;
-            }
+// PROTOCOLS
+async function loadProtos(s){try{const d=await api('GET','/api/protocols');renderProtos(d,'p-grid');}catch(e){if(!s)toast('Failed','error');}}
+function renderProtos(list,cid){const c=document.getElementById(cid);c.innerHTML='';list.forEach(p=>{
+    const b=!p.installed?'<span class="badge badge-gray">N/A</span>':p.running?'<span class="badge badge-green">Running</span>':'<span class="badge badge-red">Stopped</span>';
+    const d=document.createElement('div');d.className='glass-card protocol-card';
+    d.innerHTML=`<div class="protocol-top"><span class="protocol-name">${p.name}</span>${b}</div><div class="protocol-port">Port: <span class="mono" style="color:var(--text-main);">${p.port}</span></div>${p.installed?`<button class="btn btn-secondary btn-sm" style="width:100%;" onclick="restartP('${p.service}')">Restart</button>`:''}`;
+    c.appendChild(d);});}
+async function restartP(s){try{await api('POST',`/api/protocols/${s}/restart`);toast('Restarted','success');loadProtos();}catch(e){toast('Failed','error');}}
 
-            users.forEach(u => {
-                let statusBadge = '<span class="badge badge-green">Active</span>';
-                if (u.is_expired) statusBadge = '<span class="badge badge-red">Expired</span>';
-                else if (u.is_locked) statusBadge = '<span class="badge badge-yellow">Locked</span>';
-                const totalBwStr = u.bandwidth_gb > 0 ? `${formatBytes(u.total_used_bytes)} / ${u.bandwidth_gb} GB` : `${formatBytes(u.total_used_bytes)} / ∞`;
-                const dailyBwStr = u.daily_bandwidth_gb > 0 ? `${formatBytes(u.daily_used_bytes)} / ${u.daily_bandwidth_gb} GB` : `${formatBytes(u.daily_used_bytes)} / ∞`;
-                const ownerCell = isAdmin ? `<td><span class="badge ${u.owner === 'admin' ? 'badge-yellow' : 'badge-gray'}">${escapeHtml(u.owner || 'admin')}</span></td>` : '';
+// SETTINGS
+async function loadSettings(){try{const d=await api('GET','/api/settings');document.getElementById('s-user').value=d.username||'';document.getElementById('s-secret').value=d.secret||'';updPreview(d.secret||'');}catch(e){}}
+document.getElementById('s-secret').addEventListener('input',e=>updPreview(e.target.value));
+function updPreview(s){const h=location.host;const p=s.trim().replace(/^\/+/,'');document.getElementById('s-url-preview').textContent=p?`http://${h}/${p}`:`http://${h}/`;}
+document.getElementById('settings-form').addEventListener('submit',async e=>{e.preventDefault();try{const r=await api('PUT','/api/settings',{current_password:document.getElementById('s-curr-pass').value,new_username:document.getElementById('s-new-user').value,new_password:document.getElementById('s-new-pass').value,new_secret:document.getElementById('s-secret').value});toast('Saved','success');if(r.secret){const u=`http://${location.host}/${r.secret}`;alert(`New URL: ${u}`);location.href=u;}else loadSettings();}catch(e){toast(e.message,'error');}});
 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="mono" style="font-weight:600; color:var(--accent-gold-light);">${escapeHtml(u.username)}</td>
-                    <td><div style="display:flex;align-items:center;gap:0.5rem;"><span class="mono" id="pwd-${u.username}" style="color:var(--text-sub);">••••••••</span><button class="btn-icon" style="width:24px;height:24px;font-size:0.7rem;border:none;" onclick="togglePwdVisibility('pwd-${u.username}','${escapeHtml(u.password)}')">👁️</button></div></td>
-                    <td class="mono" style="font-size:0.8rem;">${u.expire_date}</td>
-                    <td><span style="color:${u.online_sessions > 0 ? 'var(--accent-teal)' : 'inherit'};font-weight:600;">${u.online_sessions}</span> / ${u.conn_limit}</td>
-                    <td class="mono" style="font-size:0.8rem;">${totalBwStr}</td>
-                    <td class="mono" style="font-size:0.8rem;">${dailyBwStr}</td>
-                    <td>${statusBadge}</td>
-                    ${ownerCell}
-                    <td style="text-align:right;"><div style="display:inline-flex;gap:0.25rem;">
-                        <button class="btn-icon" style="border:none;" title="Copy" onclick="copyAccountDetails('${escapeHtml(u.username)}','${escapeHtml(u.password)}','${u.expire_date}',${u.bandwidth_gb},${u.daily_bandwidth_gb},${u.conn_limit})">📋</button>
-                        <button class="btn-icon" style="border:none;" title="Edit" onclick="openEditUserModal('${escapeHtml(u.username)}',${u.conn_limit},${u.bandwidth_gb},${u.daily_bandwidth_gb})">✏️</button>
-                        <button class="btn-icon" style="border:none;" title="Renew" onclick="renewUser('${escapeHtml(u.username)}')">🔄</button>
-                        ${u.is_locked ? `<button class="btn-icon" style="border:none;" title="Unlock" onclick="toggleLock('${escapeHtml(u.username)}',false)">🔓</button>` : `<button class="btn-icon" style="border:none;" title="Lock" onclick="toggleLock('${escapeHtml(u.username)}',true)">🔒</button>`}
-                        <button class="btn-icon" style="border:none;color:var(--danger);" title="Delete" onclick="deleteUser('${escapeHtml(u.username)}')">🗑️</button>
-                    </div></td>`;
-                tbody.appendChild(tr);
+// USER ACTIONS
+async function lockUser(u,l){try{await api('POST',`/api/users/${u}/${l?'lock':'unlock'}`);toast(`${u} ${l?'locked':'unlocked'}`,'success');loadUsers();}catch(e){toast(e.message,'error');}}
+async function delUser(u){if(!confirm(`Delete "${u}" permanently?`))return;try{await api('DELETE',`/api/users/${u}`);toast('Deleted','success');loadUsers();}catch(e){toast(e.message,'error');}}
+async function renewUser(u){const d=prompt(`Renew ${u} for how many days?`,'30');if(!d||isNaN(d))return;try{await api('POST',`/api/users/${u}/renew`,{days:parseInt(d)});toast('Renewed','success');loadUsers();}catch(e){toast(e.message,'error');}}
+async function toggleR(u){try{const r=await api('POST',`/api/resellers/${u}/toggle`);toast(`${u} ${r.enabled?'enabled':'disabled'}`,'success');loadResellers();}catch(e){toast(e.message,'error');}}
+async function delReseller(u,n){let del=false;if(n>0)del=confirm(`Delete ${n} SSH accounts created by "${u}" too?`);if(!confirm(`Delete reseller "${u}"?`))return;try{await api('DELETE',`/api/resellers/${u}?delete_users=${del?'1':'0'}`);toast('Deleted','success');loadResellers();}catch(e){toast(e.message,'error');}}
 
-                const card = document.createElement('div');
-                card.className = 'glass-card user-mobile-card';
-                card.innerHTML = `
-                    <div class="user-card-header"><span class="user-card-title mono" style="color:var(--accent-gold-light);">${escapeHtml(u.username)}</span>${statusBadge}</div>
-                    <div class="user-card-meta">
-                        <div class="meta-row"><span class="meta-label">Password</span><div><span class="mono" id="mpwd-${u.username}" style="color:var(--text-sub);">••••••••</span><span style="cursor:pointer;margin-left:0.5rem;" onclick="togglePwdVisibility('mpwd-${u.username}','${escapeHtml(u.password)}')">👁️</span></div></div>
-                        <div class="meta-row"><span class="meta-label">Expiry</span><span class="mono" style="font-size:0.8rem;">${u.expire_date}</span></div>
-                        <div class="meta-row"><span class="meta-label">Sessions</span><span><b style="color:${u.online_sessions > 0 ? 'var(--accent-teal)' : 'inherit'};">${u.online_sessions}</b> / ${u.conn_limit}</span></div>
-                        <div class="meta-row"><span class="meta-label">Total BW</span><span class="mono" style="font-size:0.8rem;">${totalBwStr}</span></div>
-                        ${isAdmin ? `<div class="meta-row"><span class="meta-label">Owner</span><span class="badge ${u.owner === 'admin' ? 'badge-yellow' : 'badge-gray'}">${escapeHtml(u.owner || 'admin')}</span></div>` : ''}
-                    </div>
-                    <div class="user-card-actions">
-                        <button class="btn btn-secondary" onclick="copyAccountDetails('${escapeHtml(u.username)}','${escapeHtml(u.password)}','${u.expire_date}',${u.bandwidth_gb},${u.daily_bandwidth_gb},${u.conn_limit})">Copy</button>
-                        <button class="btn btn-secondary" onclick="openEditUserModal('${escapeHtml(u.username)}',${u.conn_limit},${u.bandwidth_gb},${u.daily_bandwidth_gb})">Edit</button>
-                        ${u.is_locked ? `<button class="btn btn-secondary" onclick="toggleLock('${escapeHtml(u.username)}',false)">Unlock</button>` : `<button class="btn btn-secondary" onclick="toggleLock('${escapeHtml(u.username)}',true)">Lock</button>`}
-                        <button class="btn btn-danger" onclick="deleteUser('${escapeHtml(u.username)}')">Delete</button>
-                    </div>`;
-                mobileGrid.appendChild(card);
-            });
-        }
+// MODALS
+function openModal(id){document.getElementById(id).classList.add('active');}
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+function openCreateUser(){if(role==='reseller'){api('GET','/api/me').then(m=>{if(m.created_users>=m.max_users){toast(`Limit reached (${m.max_users})`,'error');return;}const q=document.getElementById('cu-quota');q.textContent=`Quota: ${m.created_users}/${m.max_users}`;q.classList.remove('hidden');openModal('modal-create-user');}).catch(e=>toast(e.message,'error'));}else{document.getElementById('cu-quota').classList.add('hidden');openModal('modal-create-user');}}
+function editUser(u,c,b,d){document.getElementById('eu-name-h').value=u;document.getElementById('eu-name').value=u;document.getElementById('eu-conn').value=c;document.getElementById('eu-bw').value=b;document.getElementById('eu-dbw').value=d;openModal('modal-edit-user');}
+function editReseller(u,m){document.getElementById('er-name-h').value=u;document.getElementById('er-name').value=u;document.getElementById('er-max').value=m;openModal('modal-edit-reseller');}
 
-        // --- RESELLERS ---
-        async function loadResellers(silent = false) {
-            try {
-                const data = await api('GET', '/api/resellers');
-                renderResellers(data.resellers || []);
-            } catch (e) { if (e.message !== 'Session expired' && !silent) showToast('Failed to load resellers', 'error'); }
-        }
+// FORM SUBMITS
+document.getElementById('f-create-user').addEventListener('submit',async e=>{e.preventDefault();try{await api('POST','/api/users',{username:document.getElementById('cu-name').value,password:document.getElementById('cu-pass').value,days:+document.getElementById('cu-days').value,conn_limit:+document.getElementById('cu-conn').value,bandwidth_gb:+(document.getElementById('cu-bw').value||0),daily_bandwidth_gb:+(document.getElementById('cu-dbw').value||0)});toast('Created','success');closeModal('modal-create-user');loadUsers();}catch(e){toast(e.message,'error');}});
+document.getElementById('f-edit-user').addEventListener('submit',async e=>{e.preventDefault();const u=document.getElementById('eu-name-h').value,b={conn_limit:+document.getElementById('eu-conn').value,bandwidth_gb:+(document.getElementById('eu-bw').value||0),daily_bandwidth_gb:+(document.getElementById('eu-dbw').value||0)};const p=document.getElementById('eu-pass').value;if(p)b.password=p;const d=document.getElementById('eu-days').value;if(d)b.days=+d;try{await api('PUT',`/api/users/${u}`,b);toast('Updated','success');closeModal('modal-edit-user');loadUsers();}catch(e){toast(e.message,'error');}});
+document.getElementById('f-bulk').addEventListener('submit',async e=>{e.preventDefault();try{const r=await api('POST','/api/users/bulk',{prefix:document.getElementById('b-prefix').value,count:+document.getElementById('b-count').value,days:+document.getElementById('b-days').value,conn_limit:+document.getElementById('b-conn').value});const n=r.users?r.users.length:0;toast(`${n} created`,'success');closeModal('modal-bulk');loadUsers();}catch(e){toast(e.message,'error');}});
+document.getElementById('f-create-r').addEventListener('submit',async e=>{e.preventDefault();try{await api('POST','/api/resellers',{username:document.getElementById('cr-name').value,password:document.getElementById('cr-pass').value,days:+document.getElementById('cr-days').value,max_users:+document.getElementById('cr-max').value});toast('Created','success');closeModal('modal-create-reseller');loadResellers();}catch(e){toast(e.message,'error');}});
+document.getElementById('f-edit-r').addEventListener('submit',async e=>{e.preventDefault();const u=document.getElementById('er-name-h').value,b={max_users:+document.getElementById('er-max').value};const p=document.getElementById('er-pass').value;if(p)b.password=p;const d=document.getElementById('er-days').value;if(d)b.days=+d;try{await api('PUT',`/api/resellers/${u}`,b);toast('Updated','success');closeModal('modal-edit-reseller');loadResellers();}catch(e){toast(e.message,'error');}});
 
-        function renderResellers(resellers) {
-            const tbody = document.getElementById('resellers-table-body');
-            const mobileGrid = document.getElementById('resellers-mobile-grid');
-            tbody.innerHTML = ''; mobileGrid.innerHTML = '';
-
-            if (resellers.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-dim); padding:3rem;">No resellers found</td></tr>`;
-                mobileGrid.innerHTML = `<div class="glass-card" style="text-align:center; color:var(--text-dim); padding:3rem;">No resellers found</div>`;
-                return;
-            }
-
-            resellers.forEach(r => {
-                let statusBadge = '<span class="badge badge-green">Active</span>';
-                if (r.is_expired) statusBadge = '<span class="badge badge-red">Expired</span>';
-                else if (!r.enabled) statusBadge = '<span class="badge badge-gray">Disabled</span>';
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="mono" style="font-weight:600; color:var(--accent-teal);">${escapeHtml(r.username)}</td>
-                    <td><div style="display:flex;align-items:center;gap:0.5rem;"><span class="mono" id="rpwd-${r.username}" style="color:var(--text-sub);">••••••••</span><button class="btn-icon" style="width:24px;height:24px;font-size:0.7rem;border:none;" onclick="togglePwdVisibility('rpwd-${r.username}','${escapeHtml(r.password)}')">👁️</button></div></td>
-                    <td class="mono" style="font-size:0.8rem;">${r.expire_date}</td>
-                    <td><span style="font-weight:600; color:var(--accent-gold);">${r.created_users}</span> / ${r.max_users}</td>
-                    <td>${statusBadge}</td>
-                    <td style="text-align:right;"><div style="display:inline-flex;gap:0.25rem;">
-                        <button class="btn-icon" style="border:none;" title="Edit" onclick="openEditResellerModal('${escapeHtml(r.username)}',${r.max_users})">✏️</button>
-                        <button class="btn-icon" style="border:none;" title="${r.enabled ? 'Disable' : 'Enable'}" onclick="toggleReseller('${escapeHtml(r.username)}')">${r.enabled ? '🔒' : '🔓'}</button>
-                        <button class="btn-icon" style="border:none;color:var(--danger);" title="Delete" onclick="deleteReseller('${escapeHtml(r.username)}',${r.created_users})">🗑️</button>
-                    </div></td>`;
-                tbody.appendChild(tr);
-
-                const card = document.createElement('div');
-                card.className = 'glass-card user-mobile-card';
-                card.innerHTML = `
-                    <div class="user-card-header"><span class="user-card-title mono" style="color:var(--accent-teal);">${escapeHtml(r.username)}</span>${statusBadge}</div>
-                    <div class="user-card-meta">
-                        <div class="meta-row"><span class="meta-label">Password</span><div><span class="mono" id="mrpwd-${r.username}" style="color:var(--text-sub);">••••••••</span><span style="cursor:pointer;margin-left:0.5rem;" onclick="togglePwdVisibility('mrpwd-${r.username}','${escapeHtml(r.password)}')">👁️</span></div></div>
-                        <div class="meta-row"><span class="meta-label">Expiry</span><span class="mono" style="font-size:0.8rem;">${r.expire_date}</span></div>
-                        <div class="meta-row"><span class="meta-label">Users</span><span><b style="color:var(--accent-gold);">${r.created_users}</b> / ${r.max_users}</span></div>
-                    </div>
-                    <div class="user-card-actions">
-                        <button class="btn btn-secondary" onclick="openEditResellerModal('${escapeHtml(r.username)}',${r.max_users})">Edit</button>
-                        <button class="btn btn-secondary" onclick="toggleReseller('${escapeHtml(r.username)}')">${r.enabled ? 'Disable' : 'Enable'}</button>
-                        <button class="btn btn-danger" onclick="deleteReseller('${escapeHtml(r.username)}',${r.created_users})">Delete</button>
-                    </div>`;
-                mobileGrid.appendChild(card);
-            });
-        }
-
-        async function toggleReseller(username) {
-            try {
-                const res = await api('POST', `/api/resellers/${username}/toggle`);
-                showToast(`Reseller ${username} ${res.enabled ? 'enabled' : 'disabled'}`, 'success');
-                loadResellers();
-            } catch (e) { showToast(e.message, 'error'); }
-        }
-
-        async function deleteReseller(username, userCount) {
-            let msg = `Delete reseller "${username}"?`;
-            let deleteUsers = false;
-            if (userCount > 0) {
-                deleteUsers = confirm(`Reseller "${username}" has ${userCount} user(s). Delete their SSH accounts too?\n\nOK = Delete reseller + users\nCancel = Delete reseller only`);
-                msg = deleteUsers ? `Confirm: Delete reseller "${username}" AND their ${userCount} SSH accounts?` : `Delete reseller "${username}" (keep SSH accounts)?`;
-            }
-            if (!confirm(msg)) return;
-            try {
-                await api('DELETE', `/api/resellers/${username}?delete_users=${deleteUsers ? '1' : '0'}`);
-                showToast('Reseller deleted', 'success');
-                loadResellers();
-            } catch (e) { showToast(e.message, 'error'); }
-        }
-
-        function openCreateResellerModal() { document.getElementById('modal-create-reseller').classList.add('active'); }
-        function openEditResellerModal(un, maxUsers) {
-            document.getElementById('edit-reseller-username-hidden').value = un;
-            document.getElementById('edit-reseller-username-disp').value = un;
-            document.getElementById('edit-reseller-max-users').value = maxUsers;
-            document.getElementById('modal-edit-reseller').classList.add('active');
-        }
-
-        document.getElementById('form-create-reseller').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                await api('POST', '/api/resellers', {
-                    username: document.getElementById('reseller-username').value,
-                    password: document.getElementById('reseller-password').value,
-                    days: parseInt(document.getElementById('reseller-days').value),
-                    max_users: parseInt(document.getElementById('reseller-max-users').value)
-                });
-                showToast('Reseller created', 'success');
-                closeModal('modal-create-reseller');
-                loadResellers();
-            } catch (err) { showToast(err.message, 'error'); }
-        });
-
-        document.getElementById('form-edit-reseller').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const un = document.getElementById('edit-reseller-username-hidden').value;
-            const body = { max_users: parseInt(document.getElementById('edit-reseller-max-users').value) };
-            const pwd = document.getElementById('edit-reseller-password').value;
-            if (pwd) body.password = pwd;
-            const days = document.getElementById('edit-reseller-days').value;
-            if (days) body.days = parseInt(days);
-            try {
-                await api('PUT', `/api/resellers/${un}`, body);
-                showToast('Reseller updated', 'success');
-                closeModal('modal-edit-reseller');
-                loadResellers();
-            } catch (err) { showToast(err.message, 'error'); }
-        });
-
-        // --- PROTOCOLS ---
-        async function loadProtocols(silent = false) {
-            try { const data = await api('GET', '/api/protocols'); renderProtocols(data, 'protocols-full-grid'); }
-            catch (e) { if (e.message !== 'Session expired' && !silent) showToast('Failed to fetch services', 'error'); }
-        }
-
-        function renderProtocols(protocols, containerId) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            protocols.forEach(p => {
-                let badge = '<span class="badge badge-gray">Not Installed</span>';
-                if (p.installed) badge = p.running ? '<span class="badge badge-green">Running</span>' : '<span class="badge badge-red">Stopped</span>';
-                const div = document.createElement('div');
-                div.className = 'glass-card protocol-card';
-                div.innerHTML = `
-                    <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font-weight:600;font-size:1.1rem;letter-spacing:0.02em;">${p.name}</span>${badge}</div>
-                    <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:1rem;">PORT: <span class="mono" style="color:var(--text-main);font-weight:500;">${p.port}</span></div>
-                    ${p.installed ? `<button class="btn btn-secondary" style="width:100%;" onclick="restartProtocol('${p.service}')">Restart Daemon</button>` : ''}`;
-                container.appendChild(div);
-            });
-        }
-
-        async function restartProtocol(service) {
-            try { await api('POST', `/api/protocols/${service}/restart`); showToast(`Daemon ${service} restarted`, 'success'); loadProtocols(); }
-            catch (e) { showToast(`Fault restarting ${service}`, 'error'); }
-        }
-
-        // --- USER ACTIONS ---
-        async function toggleLock(username, lock) {
-            try { await api('POST', `/api/users/${username}/${lock ? 'lock' : 'unlock'}`); showToast(`Account ${username} ${lock ? 'locked' : 'unlocked'}`, 'success'); loadUsers(); }
-            catch (e) { showToast(e.message, 'error'); }
-        }
-        async function deleteUser(username) {
-            if (!confirm(`Purge account "${username}" permanently?`)) return;
-            try { await api('DELETE', `/api/users/${username}`); showToast('Account purged', 'success'); loadUsers(); }
-            catch (e) { showToast('Deletion failed', 'error'); }
-        }
-        async function renewUser(username) {
-            const days = prompt(`Extend validity for ${username} (Days):`, '30');
-            if (!days || isNaN(days)) return;
-            try { await api('POST', `/api/users/${username}/renew`, { days: parseInt(days) }); showToast('Validity extended', 'success'); loadUsers(); }
-            catch (e) { showToast('Renewal failed', 'error'); }
-        }
-
-        // --- SETTINGS ---
-        async function loadSettings() {
-            try { const data = await api('GET', '/api/settings'); document.getElementById('setting-current-user').value = data.username || ''; document.getElementById('setting-secret-path').value = data.secret || ''; updateUrlPreview(data.secret || ''); }
-            catch (e) {}
-        }
-        document.getElementById('setting-secret-path').addEventListener('input', (e) => updateUrlPreview(e.target.value));
-        function updateUrlPreview(secret) { const host = window.location.host; const path = secret.trim().replace(/^\/+/, ''); document.getElementById('setting-url-preview').textContent = path ? `http://${host}/${path}` : `http://${host}/`; }
-        document.getElementById('settings-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const res = await api('PUT', '/api/settings', {
-                    current_password: document.getElementById('setting-curr-pass').value,
-                    new_username: document.getElementById('setting-new-user').value,
-                    new_password: document.getElementById('setting-new-pass').value,
-                    new_secret: document.getElementById('setting-secret-path').value
-                });
-                showToast('Configuration applied', 'success');
-                if (res.secret) { const host = window.location.host; const newUrl = `http://${host}/${res.secret}`; alert(`Access URL updated to:\n${newUrl}`); window.location.href = newUrl; }
-                else loadSettings();
-            } catch (err) { showToast(err.message || 'Configuration rejected', 'error'); }
-        });
-
-        // --- MODALS ---
-        function openCreateUserModal() {
-            if (currentRole === 'reseller') {
-                api('GET', '/api/me').then(me => {
-                    if (me.created_users >= me.max_users) {
-                        showToast(`User limit reached (${me.max_users})`, 'error'); return;
-                    }
-                    const info = document.getElementById('create-user-quota-info');
-                    info.textContent = `Quota: ${me.created_users} / ${me.max_users} users created`;
-                    info.classList.remove('hidden');
-                    document.getElementById('modal-create-user').classList.add('active');
-                }).catch(e => showToast(e.message, 'error'));
-            } else {
-                document.getElementById('create-user-quota-info').classList.add('hidden');
-                document.getElementById('modal-create-user').classList.add('active');
-            }
-        }
-        function openBulkCreateModal() { document.getElementById('modal-bulk-user').classList.add('active'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-        function openEditUserModal(un, conn, bw, dbw) {
-            document.getElementById('edit-username-hidden').value = un;
-            document.getElementById('edit-username-disp').value = un;
-            document.getElementById('edit-conn').value = conn;
-            document.getElementById('edit-bw').value = bw;
-            document.getElementById('edit-daily-bw').value = dbw;
-            document.getElementById('modal-edit-user').classList.add('active');
-        }
-
-        document.getElementById('form-create-user').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                await api('POST', '/api/users', {
-                    username: document.getElementById('create-username').value,
-                    password: document.getElementById('create-password').value,
-                    days: parseInt(document.getElementById('create-days').value),
-                    conn_limit: parseInt(document.getElementById('create-conn').value),
-                    bandwidth_gb: parseFloat(document.getElementById('create-bw').value || 0),
-                    daily_bandwidth_gb: parseFloat(document.getElementById('create-daily-bw').value || 0)
-                });
-                showToast('Account provisioned', 'success'); closeModal('modal-create-user'); loadUsers();
-            } catch (err) { showToast(err.message || 'Provisioning failed', 'error'); }
-        });
-
-        document.getElementById('form-edit-user').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const un = document.getElementById('edit-username-hidden').value;
-            const body = { conn_limit: parseInt(document.getElementById('edit-conn').value), bandwidth_gb: parseFloat(document.getElementById('edit-bw').value || 0), daily_bandwidth_gb: parseFloat(document.getElementById('edit-daily-bw').value || 0) };
-            const pwd = document.getElementById('edit-password').value;
-            if (pwd) body.password = pwd;
-            const days = document.getElementById('edit-days').value;
-            if (days) body.days = parseInt(days);
-            try { await api('PUT', `/api/users/${un}`, body); showToast('Account modified', 'success'); closeModal('modal-edit-user'); loadUsers(); }
-            catch (err) { showToast(err.message || 'Modification failed', 'error'); }
-        });
-
-        document.getElementById('form-bulk-user').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const res = await api('POST', '/api/users/bulk', {
-                    prefix: document.getElementById('bulk-prefix').value,
-                    count: parseInt(document.getElementById('bulk-count').value),
-                    days: parseInt(document.getElementById('bulk-days').value),
-                    conn_limit: parseInt(document.getElementById('bulk-conn').value)
-                });
-                const count = res.users ? res.users.length : 0;
-                showToast(`Batch of ${count} accounts created`, 'success'); closeModal('modal-bulk-user'); loadUsers();
-            } catch (err) { showToast(err.message || 'Batch execution failed', 'error'); }
-        });
-
-        // --- HELPERS ---
-        function generateRandomPass(elementId) {
-            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let res = ''; for(let i=0; i<10; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
-            document.getElementById(elementId).value = res;
-        }
-        function togglePwdVisibility(id, pass) { const el = document.getElementById(id); if (el.textContent === '••••••••') el.textContent = pass; else el.textContent = '••••••••'; }
-        function copyText(text) {
-            if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text); showToast('Copied to clipboard', 'info'); }
-            else { const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.left = "-999999px"; document.body.appendChild(ta); ta.focus(); ta.select(); try { document.execCommand('copy'); showToast('Copied to clipboard', 'info'); } catch (err) { showToast('Failed to copy', 'error'); } document.body.removeChild(ta); }
-        }
-        function copyAccountDetails(user, pass, exp, bw, dbw, conn) {
-            let d = `👤 Username: ${user}\n🔑 Password: ${pass}\n📅 Expiry: ${exp}\n🔌 Devices: ${conn}\n`;
-            if (bw > 0 || dbw > 0) { d += `📊 Data Limit: `; if (bw > 0) d += `${bw} GB (Total) `; if (dbw > 0) d += `${dbw} GB (Daily)`; d += `\n`; }
-            copyText(d);
-        }
-        function formatBytes(bytes) { if (!bytes || bytes === 0) return '0 MB'; const gb = bytes / 1073741824; return gb >= 1 ? gb.toFixed(2) + ' GB' : (bytes / 1048576).toFixed(1) + ' MB'; }
-        function escapeHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-    </script>
+// HELPERS
+function genPass(id){const c='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';let r='';for(let i=0;i<10;i++)r+=c[Math.floor(Math.random()*c.length)];document.getElementById(id).value=r;}
+function togglePwd(id,p){const e=document.getElementById(id);e.textContent=e.textContent==='••••••'?p:'••••••';}
+function copyText(t){if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t);toast('Copied','info');}else{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.left='-9999px';document.body.appendChild(a);a.select();try{document.execCommand('copy');toast('Copied','info');}catch(e){toast('Failed','error');}document.body.removeChild(a);}}
+function copyAcct(u,p,e,b,d,c){let t=`👤 ${u}\n🔑 ${p}\n📅 ${e}\n🔌 ${c} devices\n`;if(b>0||d>0){t+='📊 ';if(b>0)t+=`${b}GB total `;if(d>0)t+=`${d}GB/day`;t+='\n';}copyText(t);}
+</script>
 </body>
 </html>
