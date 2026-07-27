@@ -149,7 +149,7 @@
         <span style="font-size:1.2rem;" id="mh-logo">🦅</span>
         <span class="gt" style="font-weight:700;font-size:.85rem;letter-spacing:.06em;text-transform:uppercase;" id="mh-name">FirewallFalcon</span>
     </div>
-    <button class="lo-btn" id="mlo" style="width:auto;padding:.4rem .7rem;font-size:.7rem;">Logout</button>
+    <button class="lo-btn" id="mlo" style="width:auto;padding:.4rem .7rem;font-size:.7rem;">Log Out</button>
 </div>
 <nav class="bnav" id="bn">
     <div class="bni a" data-t="dashboard"><span class="bic">📊</span><span class="blb">Home</span></div>
@@ -167,7 +167,7 @@
         <div class="ni ao" data-t="protocols"><span class="nc">📡</span>Services</div>
         <div class="ni ao" data-t="settings"><span class="nc">⚙️</span>Settings</div>
     </nav>
-    <div class="sb-ft"><div id="sr" style="text-align:center;margin-bottom:.6rem;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);"></div><button class="lo-btn" id="blo">⏻ Log Out</button></div>
+    <div class="sb-ft"><div id="sr" style="text-align:center;margin-bottom:.6rem;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);"></div><button class="lo-btn" id="blo">Log Out</button></div>
 </aside>
 <main class="main">
     <section id="tab-dashboard" class="tp">
@@ -264,7 +264,8 @@ function setBrand(name,logo){PN=name||'FirewallFalcon';PL=logo||'🦅';document.
 ['lv-logo','login-logo','mh-logo','sb-logo'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=PL;});
 ['login-name','mh-name','sb-name'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=PN;});}
 
-async function init(){try{const m=await api('GET','/api/me');RL=m.role;ME=m.username;setBrand(m.panel_name,m.panel_logo);document.getElementById('lv').classList.add('hidden');sA();}catch(e){document.getElementById('lv').classList.add('hidden');sL();}}
+async function loadBranding(){try{const r=await fetch('/api/branding');if(r.ok){const d=await r.json();setBrand(d.panel_name,d.panel_logo);}}catch(e){}}
+async function init(){await loadBranding();try{const m=await api('GET','/api/me');RL=m.role;ME=m.username;setBrand(m.panel_name,m.panel_logo);document.getElementById('lv').classList.add('hidden');sA();}catch(e){document.getElementById('lv').classList.add('hidden');sL();}}
 document.addEventListener('DOMContentLoaded',init);
 function sL(){document.getElementById('av').classList.add('hidden');document.getElementById('lview').classList.remove('hidden');}
 function sA(){document.getElementById('lview').classList.add('hidden');document.getElementById('av').classList.remove('hidden');aR();const s=localStorage.getItem('tab')||'dashboard';const at=['resellers','protocols','settings'];const t=(RL==='reseller'&&at.includes(s))?'dashboard':s;sw(t);sP();}

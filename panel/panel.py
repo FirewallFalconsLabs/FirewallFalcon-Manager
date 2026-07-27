@@ -344,6 +344,15 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
                 self.wfile.write(b"Not Found")
                 return
 
+            # Public endpoint: branding (no auth required)
+            if api_path == "/api/branding":
+                creds = get_panel_creds()
+                self.send_json(200, {
+                    "panel_name": creds.get("PANEL_NAME", "FirewallFalcon"),
+                    "panel_logo": creds.get("PANEL_LOGO", "\ud83e\udd85")
+                })
+                return
+
             session = self._get_session()
             if not session:
                 return
