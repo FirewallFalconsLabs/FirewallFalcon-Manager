@@ -220,7 +220,7 @@ def read_file_int(path, default=0):
 
 # --- PANEL CREDS ---
 def get_panel_creds():
-    creds = {"PANEL_USER": "", "PANEL_PASS_HASH": "", "PANEL_PASS_PLAIN": "", "PANEL_SECRET": ""}
+    creds = {"PANEL_USER": "", "PANEL_PASS_HASH": "", "PANEL_PASS_PLAIN": "", "PANEL_SECRET": "", "PANEL_NAME": "FirewallFalcon", "PANEL_LOGO": "🦅"}
     if os.path.exists(PANEL_CONF):
         with open(PANEL_CONF, "r") as f:
             for line in f:
@@ -232,13 +232,17 @@ def get_panel_creds():
                         creds[k] = v
     return creds
 
-def write_panel_creds(user, pass_plain, secret=None):
+def write_panel_creds(user, pass_plain, secret=None, panel_name=None, panel_logo=None):
     creds = get_panel_creds()
     creds["PANEL_USER"] = user
     creds["PANEL_PASS_PLAIN"] = pass_plain
     creds["PANEL_PASS_HASH"] = hashlib.sha256(pass_plain.encode()).hexdigest()
     if secret is not None:
         creds["PANEL_SECRET"] = secret.strip().lstrip('/')
+    if panel_name is not None:
+        creds["PANEL_NAME"] = panel_name.strip() or "FirewallFalcon"
+    if panel_logo is not None:
+        creds["PANEL_LOGO"] = panel_logo.strip() or "🦅"
     
     os.makedirs(os.path.dirname(PANEL_CONF), exist_ok=True)
     with open(PANEL_CONF, "w") as f:
@@ -533,14 +537,19 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
         self.send_json(200, {"success": True}, {"Set-Cookie": cookie_str})
 
     def handle_get_me(self, session):
-        data = {"role": session.get("role", "admin"), "username": session.get("username", "")}
+        creds = get_panel_creds()
+        data = {
+            "role": session.get("role", "admin"),
+            "username": session.get("username", ""),
+            "panel_name": creds.get("PANEL_NAME", "FirewallFalcon"),
+            "panel_logo": creds.get("PANEL_LOGO", "🦅")
+        }
         if session.get("role") == "reseller":
             resellers = read_resellers()
             r = next((x for x in resellers if x["username"] == session["username"]), None)
             if r:
                 data["expire_date"] = r["expire_date"]
                 data["max_users"] = r["max_users"]
-                # Count users owned by this reseller
                 users = read_db()
                 owned = [u for u in users if u.get("owner") == session["username"]]
                 data["created_users"] = len(owned)
@@ -944,7 +953,9 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
         creds = get_panel_creds()
         self.send_json(200, {
             "username": creds.get("PANEL_USER", ""),
-            "secret": creds.get("PANEL_SECRET", "")
+            "secret": creds.get("PANEL_SECRET", ""),
+            "panel_name": creds.get("PANEL_NAME", "FirewallFalcon"),
+            "panel_logo": creds.get("PANEL_LOGO", "🦅")
         })
 
     def handle_put_settings(self, body):
@@ -953,13 +964,15 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
         new_user = body.get("new_username", "").strip() or creds.get("PANEL_USER", "")
         new_pwd = body.get("new_password", "").strip() or creds.get("PANEL_PASS_PLAIN", "")
         new_secret = body.get("new_secret", "").strip().lstrip('/')
+        new_name = body.get("panel_name", "").strip()
+        new_logo = body.get("panel_logo", "").strip()
         
         curr_hash = hashlib.sha256(curr_pwd.encode()).hexdigest()
         if curr_hash != creds.get("PANEL_PASS_HASH"):
             return self.send_json(401, {"error": "Invalid current password"})
             
-        write_panel_creds(new_user, new_pwd, secret=new_secret)
-        self.send_json(200, {"success": True, "secret": new_secret})
+        write_panel_creds(new_user, new_pwd, secret=new_secret, panel_name=new_name or None, panel_logo=new_logo or None)
+        self.send_json(200, {"success": True, "secret": new_secret, "panel_name": new_name or creds.get("PANEL_NAME", "FirewallFalcon"), "panel_logo": new_logo or creds.get("PANEL_LOGO", "🦅")})
 
     # --- RESELLER HANDLERS (admin only) ---
     def handle_get_resellers(self):
