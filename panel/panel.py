@@ -238,6 +238,49 @@ def read_file_int(path, default=0):
         pass
     return default
 
+def refresh_ssh_banner_config():
+    """Refresh dynamic SSH banner sshd config when banners are enabled."""
+    if not os.path.exists("/etc/firewallfalcon/banners_enabled"):
+        return
+    sshd_ff_config = "/etc/ssh/sshd_config.d/firewallfalcon-banners.conf"
+    banner_dir = "/etc/firewallfalcon/banners"
+    os.makedirs(banner_dir, exist_ok=True)
+    
+    lines = ["# FirewallFalcon - Dynamic per-user SSH banners\n"]
+    users = read_db()
+    for u in users:
+        un = u["username"]
+        lines.append(f"Match User {un}\n")
+        lines.append(f"    Banner {banner_dir}/{un}.txt\n")
+    
+    new_content = "".join(lines)
+    
+    # Only update if changed
+    old_content = ""
+    if os.path.exists(sshd_ff_config):
+        try:
+            with open(sshd_ff_config, "r") as f:
+                old_content = f.read()
+        except:
+            pass
+    
+    if new_content != old_content:
+        try:
+            with open(sshd_ff_config, "w") as f:
+                f.write(new_content)
+            # Ensure Include directive exists
+            try:
+                with open("/etc/ssh/sshd_config", "r") as f:
+                    sshd_content = f.read()
+                if "Include /etc/ssh/sshd_config.d/" not in sshd_content:
+                    with open("/etc/ssh/sshd_config", "a") as f:
+                        f.write("\nInclude /etc/ssh/sshd_config.d/*.conf\n")
+            except:
+                pass
+            run_cmd("systemctl reload sshd 2>/dev/null || systemctl reload ssh 2>/dev/null", ignore_errors=True)
+        except Exception as e:
+            print(f"Error refreshing SSH banner config: {e}", file=sys.stderr)
+
 # --- PANEL CREDS ---
 def get_panel_creds():
     creds = {"PANEL_USER": "", "PANEL_PASS_HASH": "", "PANEL_PASS_PLAIN": "", "PANEL_SECRET": "", "PANEL_NAME": "FirewallFalcon", "PANEL_LOGO": "🦅"}
@@ -371,8 +414,26 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
                 creds = get_panel_creds()
                 self.send_json(200, {
                     "panel_name": creds.get("PANEL_NAME", "FirewallFalcon"),
-                    "panel_logo": creds.get("PANEL_LOGO", "\ud83e\udd85")
+                    "panel_logo": creds.get("PANEL_LOGO", "\ud83e\udd85"),
+                    "has_custom_logo": os.path.exists("/etc/firewallfalcon/panel/logo.png") and creds.get("PANEL_LOGO") == "custom"
                 })
+                return
+
+            # Serve custom logo image (public, no auth)
+            logo_path = "/etc/firewallfalcon/panel/logo.png"
+            if api_path == "/api/logo.png":
+                if os.path.exists(logo_path):
+                    with open(logo_path, "rb") as f:
+                        img_data = f.read()
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'image/png')
+                    self.send_header('Cache-Control', 'public, max-age=3600')
+                    self.end_headers()
+                    self.wfile.write(img_data)
+                else:
+                    self.send_response(404)
+                    self.end_headers()
+                    self.wfile.write(b"No custom logo")
                 return
 
             session = self._get_session()
@@ -424,6 +485,14 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
 
         if path == "/api/logout":
             self.handle_logout()
+        elif path == "/api/logo/upload":
+            if not self._require_admin(session):
+                return
+            self.handle_logo_upload()
+        elif path == "/api/logo/delete":
+            if not self._require_admin(session):
+                return
+            self.handle_logo_delete()
         elif path == "/api/users":
             self.handle_post_users(body, session)
         elif path == "/api/users/bulk":
@@ -580,7 +649,8 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             "role": session.get("role", "admin"),
             "username": session.get("username", ""),
             "panel_name": creds.get("PANEL_NAME", "FirewallFalcon"),
-            "panel_logo": creds.get("PANEL_LOGO", "🦅")
+            "panel_logo": creds.get("PANEL_LOGO", "🦅"),
+            "has_custom_logo": os.path.exists("/etc/firewallfalcon/panel/logo.png") and creds.get("PANEL_LOGO") == "custom"
         }
         if session.get("role") == "reseller":
             resellers = read_resellers()
@@ -594,6 +664,33 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
         self.send_json(200, data)
 
     def handle_get_dashboard(self, session):
+        users = read_db()
+
+        if session.get("role") == "reseller":
+            # Reseller sees only their stats
+            owned_users = [u for u in users if u.get("owner") == session["username"]]
+            owned_usernames = set(u["username"] for u in owned_users)
+            online_pids = get_online_sessions_for_users(owned_usernames)
+            online_total = sum(len(pids) for pids in online_pids.values())
+            
+            resellers = read_resellers()
+            r = next((x for x in resellers if x["username"] == session["username"]), None)
+            max_users = r["max_users"] if r else 0
+            expire_date = r["expire_date"] if r else "N/A"
+
+            self.send_json(200, {
+                "user_count": len(owned_users),
+                "online_sessions": online_total,
+                "protocols": [],
+                "reseller_info": {
+                    "max_users": max_users,
+                    "created_users": len(owned_users),
+                    "expire_date": expire_date
+                }
+            })
+            return
+
+        # --- ADMIN BRANCH ---
         _, ip, _ = run_cmd("curl -s -4 --max-time 3 icanhazip.com")
         
         os_name = "Unknown OS"
@@ -631,53 +728,21 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
         except Exception:
             pass
 
-        users = read_db()
-
-        if session.get("role") == "reseller":
-            # Reseller sees only their stats
-            owned_users = [u for u in users if u.get("owner") == session["username"]]
-            owned_usernames = set(u["username"] for u in owned_users)
-            online_pids = get_online_sessions_for_users(owned_usernames)
-            online_total = sum(len(pids) for pids in online_pids.values())
-            
-            resellers = read_resellers()
-            r = next((x for x in resellers if x["username"] == session["username"]), None)
-            max_users = r["max_users"] if r else 0
-            expire_date = r["expire_date"] if r else "N/A"
-
-            self.send_json(200, {
-                "server_ip": ip,
-                "os_name": os_name,
-                "uptime": uptime_str,
-                "ram_percent": ram_percent,
-                "ram_used_mb": ram_used,
-                "ram_total_mb": ram_total,
-                "cpu_load_1m": cpu_load,
-                "user_count": len(owned_users),
-                "online_sessions": online_total,
-                "protocols": [],
-                "reseller_info": {
-                    "max_users": max_users,
-                    "created_users": len(owned_users),
-                    "expire_date": expire_date
-                }
-            })
-        else:
-            # Admin sees everything
-            online_sessions = get_online_sessions()
-            procs = self.get_protocols_status()
-            self.send_json(200, {
-                "server_ip": ip,
-                "os_name": os_name,
-                "uptime": uptime_str,
-                "ram_percent": ram_percent,
-                "ram_used_mb": ram_used,
-                "ram_total_mb": ram_total,
-                "cpu_load_1m": cpu_load,
-                "user_count": len(users),
-                "online_sessions": online_sessions,
-                "protocols": procs
-            })
+        # Admin sees everything
+        online_sessions = get_online_sessions()
+        procs = self.get_protocols_status()
+        self.send_json(200, {
+            "server_ip": ip,
+            "os_name": os_name,
+            "uptime": uptime_str,
+            "ram_percent": ram_percent,
+            "ram_used_mb": ram_used,
+            "ram_total_mb": ram_total,
+            "cpu_load_1m": cpu_load,
+            "user_count": len(users),
+            "online_sessions": online_sessions,
+            "protocols": procs
+        })
 
     def get_protocols_status(self):
         procs = []
@@ -789,6 +854,7 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             with open(DB_FILE, "a") as f:
                 f.write(format_db_line(new_u))
                 
+        refresh_ssh_banner_config()
         return new_u
 
     def handle_post_users(self, body, session):
@@ -924,6 +990,7 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
                             
         run_cmd(f"rm -f {BW_DIR}/{username}.*", ignore_errors=True)
         run_cmd(f"rm -f /etc/firewallfalcon/banners/{username}.txt", ignore_errors=True)
+        refresh_ssh_banner_config()
         
         self.send_json(200, {"success": True})
 
@@ -992,13 +1059,55 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
         # Schedule reboot in background so we can return response first
         threading.Timer(2.0, lambda: subprocess.run(["reboot"])).start()
 
+    def handle_logo_upload(self):
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            if content_length > 512000:  # 500KB max
+                return self.send_json(400, {"error": "File too large (max 500KB)"})
+            if content_length == 0:
+                return self.send_json(400, {"error": "No file data"})
+            
+            img_data = self.rfile.read(content_length)
+            logo_path = "/etc/firewallfalcon/panel/logo.png"
+            os.makedirs(os.path.dirname(logo_path), exist_ok=True)
+            with open(logo_path, "wb") as f:
+                f.write(img_data)
+            
+            # Set PANEL_LOGO to 'custom' to signal frontend to use image
+            creds = get_panel_creds()
+            creds["PANEL_LOGO"] = "custom"
+            os.makedirs(os.path.dirname(PANEL_CONF), exist_ok=True)
+            with open(PANEL_CONF, "w") as f:
+                for k, v in creds.items():
+                    f.write(f"{k}={v}\n")
+            
+            self.send_json(200, {"success": True, "panel_logo": "custom"})
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
+
+    def handle_logo_delete(self):
+        logo_path = "/etc/firewallfalcon/panel/logo.png"
+        try:
+            if os.path.exists(logo_path):
+                os.remove(logo_path)
+            creds = get_panel_creds()
+            creds["PANEL_LOGO"] = "🦅"
+            os.makedirs(os.path.dirname(PANEL_CONF), exist_ok=True)
+            with open(PANEL_CONF, "w") as f:
+                for k, v in creds.items():
+                    f.write(f"{k}={v}\n")
+            self.send_json(200, {"success": True, "panel_logo": "🦅"})
+        except Exception as e:
+            self.send_json(500, {"error": str(e)})
+
     def handle_get_settings(self):
         creds = get_panel_creds()
         self.send_json(200, {
             "username": creds.get("PANEL_USER", ""),
             "secret": creds.get("PANEL_SECRET", ""),
             "panel_name": creds.get("PANEL_NAME", "FirewallFalcon"),
-            "panel_logo": creds.get("PANEL_LOGO", "🦅")
+            "panel_logo": creds.get("PANEL_LOGO", "🦅"),
+            "has_custom_logo": os.path.exists("/etc/firewallfalcon/panel/logo.png") and creds.get("PANEL_LOGO") == "custom"
         })
 
     def handle_put_settings(self, body):
