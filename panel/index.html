@@ -183,7 +183,7 @@
         <div id="dps"><h2 style="font-size:.95rem;font-weight:600;margin-bottom:.75rem;">Services</h2><div class="pgrid" id="dp"></div></div>
     </section>
     <section id="tab-users" class="tp hidden">
-        <div class="ph"><div><h1 class="pt">Accounts</h1><p style="color:var(--t2);font-size:.78rem;">SSH user management</p></div><div class="pa"><button class="btn bs2 bsm" onclick="openM('mbk')">Bulk</button><button class="btn bp bsm" onclick="openCU()">+ New</button></div></div>
+        <div class="ph"><div><h1 class="pt">Accounts</h1><p style="color:var(--t2);font-size:.78rem;">SSH user management</p></div><div class="pa"><button class="btn bs2 bsm" onclick="openM('mtr')">⏱ Trial</button><button class="btn bs2 bsm" onclick="openM('mbk')">Bulk</button><button class="btn bp bsm" onclick="openCU()">+ New</button></div></div>
         <div class="sbox"><input type="text" id="su" placeholder="Search..." oninput="fU()"></div>
         <div class="gc tw" style="padding:0;overflow:hidden;"><div style="overflow-x:auto;"><table><thead><tr><th>User</th><th>Pass</th><th>Expiry</th><th>Conn</th><th>BW</th><th>Status</th><th class="ao">Owner</th><th style="text-align:right;">Actions</th></tr></thead><tbody id="utb"></tbody></table></div></div>
         <div class="ucards" id="ucc"></div>
@@ -204,7 +204,7 @@
                 <h3 style="font-size:.85rem;font-weight:700;color:var(--al);margin-bottom:1rem;text-transform:uppercase;letter-spacing:.06em;">🎨 Branding</h3>
                 <div class="ir"><div class="ig"><label>Panel Name</label><input type="text" id="s-pn" placeholder="FirewallFalcon"></div><div class="ig"><label>Logo Emoji</label><input type="text" id="s-pl" placeholder="🦅" maxlength="4"></div></div>
                 <div style="margin-top:.85rem;">
-                    <label style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--t2);display:block;margin-bottom:.4rem;">Or Upload Logo Image (PNG, max 500KB)</label>
+                    <label style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--t2);display:block;margin-bottom:.4rem;">Or Upload Logo Image (PNG, max 2MB)</label>
                     <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
                         <input type="file" id="s-lf" accept="image/png" style="font-size:.75rem;color:var(--t2);">
                         <button type="button" class="btn bs2 bsm" onclick="uploadLogo()">Upload</button>
@@ -246,6 +246,14 @@
 <div class="mo" id="mbk"><div class="mb2"><div class="mhd"><h3 class="mtl">Bulk Create</h3><button class="bi" onclick="closeM('mbk')" style="border:none;">✕</button></div>
 <form id="fb"><div class="ir"><div class="ig"><label>Prefix</label><input type="text" id="bp2" value="user" required></div><div class="ig"><label>Count</label><input type="number" id="bc" value="5" min="1" max="50" required></div></div>
 <div class="ir"><div class="ig"><label>Days</label><input type="number" id="bd" value="30" min="1" required></div><div class="ig"><label>Devices</label><input type="number" id="bcc" value="1" min="1" required></div></div>
+
+<div class="mo" id="mtr"><div class="mb2"><div class="mhd"><h3 class="mtl">Trial Account</h3><button class="bi" onclick="closeM('mtr')" style="border:none;">✕</button></div>
+<form id="ftr"><div class="ig"><label>Username (optional)</label><input type="text" id="tn" placeholder="Auto-generated"></div>
+<div class="ig"><label>Password</label><div style="display:flex;gap:.4rem;"><input type="text" id="tp2" style="flex:1;" placeholder="Auto-generated"><button type="button" class="btn bs2 bsm" onclick="gp('tp2')">Gen</button></div></div>
+<div class="ig"><label>Duration</label><select id="th" style="width:100%;padding:.65rem;background:var(--b2);border:1px solid var(--bs);border-radius:var(--rm);color:var(--tx);font-size:.85rem;"><option value="1">1 Hour</option><option value="2">2 Hours</option><option value="3">3 Hours</option><option value="6">6 Hours</option><option value="12">12 Hours</option><option value="24">1 Day</option><option value="72">3 Days</option></select></div>
+<div class="ir"><div class="ig"><label>Devices</label><input type="number" id="tc2" value="1" min="1" required></div><div class="ig"><label>BW (GB, 0=∞)</label><input type="number" step=".1" id="tb" value="0" min="0"></div></div>
+<div id="tq" class="hidden" style="padding:.55rem .85rem;background:var(--ad);border:1px solid var(--bg2);border-radius:var(--rm);margin-bottom:.85rem;font-size:.72rem;color:var(--al);"></div>
+<div class="mft"><button type="button" class="btn bs2" onclick="closeM('mtr')">Cancel</button><button type="submit" class="btn bp">Create Trial</button></div></form></div></div>
 <div class="mft"><button type="button" class="btn bs2" onclick="closeM('mbk')">Cancel</button><button type="submit" class="btn bp">Create</button></div></form></div></div>
 
 <div class="mo" id="mcr"><div class="mb2"><div class="mhd"><h3 class="mtl">New Reseller</h3><button class="bi" onclick="closeM('mcr')" style="border:none;">✕</button></div>
@@ -385,12 +393,13 @@ document.getElementById('feu').addEventListener('submit',async e=>{e.preventDefa
 document.getElementById('fb').addEventListener('submit',async e=>{e.preventDefault();try{const r=await api('POST','/api/users/bulk',{prefix:document.getElementById('bp2').value,count:+document.getElementById('bc').value,days:+document.getElementById('bd').value,conn_limit:+document.getElementById('bcc').value});T(`${r.users?r.users.length:0} created`,'s');closeM('mbk');lU();}catch(e){T(e.message,'e');}});
 document.getElementById('fcr').addEventListener('submit',async e=>{e.preventDefault();try{await api('POST','/api/resellers',{username:document.getElementById('rn').value,password:document.getElementById('rp2').value,days:+document.getElementById('rd').value,max_users:+document.getElementById('rm').value});T('Created','s');closeM('mcr');lR();}catch(e){T(e.message,'e');}});
 document.getElementById('fer').addEventListener('submit',async e=>{e.preventDefault();const u=document.getElementById('erh').value,b={max_users:+document.getElementById('erm').value};const p=document.getElementById('erp').value;if(p)b.password=p;const d=document.getElementById('erd').value;if(d)b.days=+d;try{await api('PUT',`/api/resellers/${u}`,b);T('Updated','s');closeM('mer');lR();}catch(e){T(e.message,'e');}});
+document.getElementById('ftr').addEventListener('submit',async e=>{e.preventDefault();try{const r=await api('POST','/api/users/trial',{username:document.getElementById('tn').value,password:document.getElementById('tp2').value,hours:+document.getElementById('th').value,conn_limit:+document.getElementById('tc2').value,bandwidth_gb:+(document.getElementById('tb').value||0)});T(`Trial ${r.username} created (expires ${r.expiry_time})`,'s');closeM('mtr');lU();}catch(e){T(e.message,'e');}});
 
 function gp(id){const c='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';let r='';for(let i=0;i<10;i++)r+=c[Math.floor(Math.random()*c.length)];document.getElementById(id).value=r;}
 function tp(id,p){const e=document.getElementById(id);e.textContent=e.textContent==='••••••'?p:'••••••';}
 function cT(t){if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t);T('Copied','i');}else{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.left='-9999px';document.body.appendChild(a);a.select();try{document.execCommand('copy');T('Copied','i');}catch(e){T('Failed','e');}document.body.removeChild(a);}}
 function cA(u,p,e,b,d,c){let t=`👤 ${u}\n🔑 ${p}\n📅 ${e}\n🔌 ${c} devices\n`;if(b>0||d>0){t+='📊 ';if(b>0)t+=`${b}GB total `;if(d>0)t+=`${d}GB/day`;t+='\n';}cT(t);}
-async function uploadLogo(){const f=document.getElementById('s-lf').files[0];if(!f){T('Select a PNG file','e');return;}if(f.size>512000){T('Max 500KB','e');return;}if(!f.type.includes('png')){T('PNG only','e');return;}try{const r=await fetch('/api/logo/upload',{method:'POST',credentials:'same-origin',body:f});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');T('Logo uploaded','s');setBrand(null,d.panel_logo,true);lS();}catch(e){T(e.message,'e');}}
+async function uploadLogo(){const f=document.getElementById('s-lf').files[0];if(!f){T('Select a PNG file','e');return;}if(f.size>2097152){T('Max 2MB','e');return;}if(!f.type.includes('png')){T('PNG only','e');return;}try{const r=await fetch('/api/logo/upload',{method:'POST',credentials:'same-origin',body:f});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');T('Logo uploaded','s');setBrand(null,d.panel_logo,true);lS();}catch(e){T(e.message,'e');}}
 async function deleteLogo(){if(!confirm('Remove custom logo?'))return;try{const d=await api('POST','/api/logo/delete');T('Logo removed','s');setBrand(null,d.panel_logo,false);lS();}catch(e){T(e.message,'e');}}
 </script>
 </body>

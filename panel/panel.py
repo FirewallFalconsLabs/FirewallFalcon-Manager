@@ -469,6 +469,18 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
         path = parsed_path.path
         
         content_length = int(self.headers.get('Content-Length', 0))
+        
+        # Handle logo upload BEFORE reading body as JSON (binary upload)
+        if path == "/api/logo/upload":
+            session = self._get_session()
+            if not session:
+                return
+            if not self._require_admin(session):
+                return
+            raw_data = self.rfile.read(content_length) if content_length > 0 else b''
+            self.handle_logo_upload(raw_data)
+            return
+        
         post_data = self.rfile.read(content_length)
         try:
             body = json.loads(post_data.decode('utf-8')) if post_data else {}
@@ -485,10 +497,6 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
 
         if path == "/api/logout":
             self.handle_logout()
-        elif path == "/api/logo/upload":
-            if not self._require_admin(session):
-                return
-            self.handle_logo_upload()
         elif path == "/api/logo/delete":
             if not self._require_admin(session):
                 return
@@ -514,6 +522,8 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
                 return
             service = path.split("/")[3]
             self.handle_protocol_restart(service)
+        elif path == "/api/users/trial":
+            self.handle_post_trial_user(body, session)
         elif path == "/api/resellers":
             if not self._require_admin(session):
                 return
@@ -853,6 +863,13 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             os.makedirs(os.path.dirname(DB_FILE), exist_ok=True)
             with open(DB_FILE, "a") as f:
                 f.write(format_db_line(new_u))
+        
+        # Initialize bandwidth usage files to prevent immediate locking
+        os.makedirs(BW_DIR, exist_ok=True)
+        with open(f"{BW_DIR}/{un}.usage", "w") as f:
+            f.write("0")
+        with open(f"{BW_DIR}/{un}.daily_usage", "w") as f:
+            f.write("0")
                 
         refresh_ssh_banner_config()
         return new_u
@@ -927,6 +944,53 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
                 idx += 1
                 
             self.send_json(200, {"users": created})
+        except Exception as e:
+            self.send_json(400, {"error": str(e)})
+
+    def handle_post_trial_user(self, body, session):
+        try:
+            owner = session.get("username", "admin") if session.get("role") == "reseller" else "admin"
+
+            # Reseller quota check
+            if session.get("role") == "reseller":
+                resellers = read_resellers()
+                r = next((x for x in resellers if x["username"] == session["username"]), None)
+                if not r:
+                    return self.send_json(403, {"error": "Reseller account not found"})
+                users = read_db()
+                owned = [u for u in users if u.get("owner") == session["username"]]
+                if len(owned) >= r["max_users"]:
+                    return self.send_json(403, {"error": f"User limit reached ({r['max_users']})"})
+
+            un = body.get("username", "")
+            if not un:
+                import random, string
+                un = "trial_" + "".join(random.choices(string.ascii_lowercase + string.digits, k=5))
+            pwd = body.get("password", "") or generate_password()
+            hours = int(body.get("hours", 1))
+            conn = int(body.get("conn_limit", 1))
+            bw = float(body.get("bandwidth_gb", 0))
+            
+            # Calculate days for expiry
+            if hours >= 24:
+                days = hours // 24
+            else:
+                days = 1  # At least 1 day for chage, at job does real cleanup
+            
+            new_u = self._create_user(un, pwd, days, conn, bw, 0, acct_type="trial", owner=owner)
+            
+            # Schedule auto-cleanup via 'at' daemon
+            cleanup_script = "/usr/local/bin/firewallfalcon-trial-cleanup.sh"
+            if os.path.exists(cleanup_script):
+                run_cmd(f"echo '{cleanup_script} {un}' | at now + {hours} hours", ignore_errors=True)
+            
+            # Calculate expiry timestamp for display
+            from datetime import datetime, timedelta
+            expiry_time = (datetime.now() + timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
+            new_u["expiry_time"] = expiry_time
+            new_u["hours"] = hours
+            
+            self.send_json(200, new_u)
         except Exception as e:
             self.send_json(400, {"error": str(e)})
 
@@ -1059,19 +1123,17 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
         # Schedule reboot in background so we can return response first
         threading.Timer(2.0, lambda: subprocess.run(["reboot"])).start()
 
-    def handle_logo_upload(self):
+    def handle_logo_upload(self, raw_data):
         try:
-            content_length = int(self.headers.get('Content-Length', 0))
-            if content_length > 512000:  # 500KB max
-                return self.send_json(400, {"error": "File too large (max 500KB)"})
-            if content_length == 0:
+            if len(raw_data) > 2097152:  # 2MB max
+                return self.send_json(400, {"error": "File too large (max 2MB)"})
+            if len(raw_data) == 0:
                 return self.send_json(400, {"error": "No file data"})
             
-            img_data = self.rfile.read(content_length)
             logo_path = "/etc/firewallfalcon/panel/logo.png"
             os.makedirs(os.path.dirname(logo_path), exist_ok=True)
             with open(logo_path, "wb") as f:
-                f.write(img_data)
+                f.write(raw_data)
             
             # Set PANEL_LOGO to 'custom' to signal frontend to use image
             creds = get_panel_creds()

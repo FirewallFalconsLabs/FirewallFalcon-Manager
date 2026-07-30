@@ -991,7 +991,7 @@ while true; do
         printf "%s\n" "$new_total" > "$usagefile"
 
         if awk "BEGIN{exit(!($bandwidth_gb > 0))}" 2>/dev/null; then
-            quota_bytes=$(awk "BEGIN{printf \"%d\", $bandwidth_gb * 1073741824}")
+            quota_bytes=$(awk "BEGIN{printf \"%.0f\", $bandwidth_gb * 1073741824}")
             if [[ "$quota_bytes" =~ ^[0-9]+$ ]] && (( quota_bytes > 0 && new_total >= quota_bytes )); then
                 if ! $user_locked; then
                     usermod -L "$user" &>/dev/null
@@ -1011,7 +1011,7 @@ while true; do
         printf "%s\n" "$new_daily_total" > "$daily_usagefile"
         
         if awk "BEGIN{exit(!($daily_bandwidth_gb > 0))}" 2>/dev/null; then
-            d_quota_bytes=$(awk "BEGIN{printf \"%d\", $daily_bandwidth_gb * 1073741824}")
+            d_quota_bytes=$(awk "BEGIN{printf \"%.0f\", $daily_bandwidth_gb * 1073741824}")
             if [[ "$d_quota_bytes" =~ ^[0-9]+$ ]] && (( d_quota_bytes > 0 && new_daily_total >= d_quota_bytes )); then
                 if ! $user_locked; then
                     usermod -L "$user" &>/dev/null
@@ -1526,12 +1526,14 @@ _select_multi_user_interface() {
             for idx in "${unique_indices[@]}"; do
                 SELECTED_USERS+=("${users[$((idx-1))]}")
             done
-            mapfile -t unique_names < <(printf "%s\n" "${selected_names[@]}" | sort -u)
-            for username in "${unique_names[@]}"; do
-                if ! printf "%s\n" "${SELECTED_USERS[@]}" | grep -Fxq "$username"; then
-                    SELECTED_USERS+=("$username")
-                fi
-            done
+            if (( ${#selected_names[@]} > 0 )); then
+                mapfile -t unique_names < <(printf "%s\n" "${selected_names[@]}" | sort -u)
+                for username in "${unique_names[@]}"; do
+                    if [[ -n "$username" ]] && ! printf "%s\n" "${SELECTED_USERS[@]}" | grep -Fxq "$username"; then
+                        SELECTED_USERS+=("$username")
+                    fi
+                done
+            fi
             return
         else
             echo -e "${C_RED}❌ Invalid selection. Please check your numbers or usernames.${C_RESET}"
