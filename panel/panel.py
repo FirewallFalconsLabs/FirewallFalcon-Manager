@@ -505,6 +505,8 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             self.handle_post_users(body, session)
         elif path == "/api/users/bulk":
             self.handle_post_users_bulk(body, session)
+        elif path == "/api/users/trial":
+            self.handle_post_trial_user(body, session)
         elif path.startswith("/api/users/") and path.endswith("/lock"):
             user = path.split("/")[3]
             self.handle_user_action(user, "lock", session=session)
@@ -522,8 +524,6 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
                 return
             service = path.split("/")[3]
             self.handle_protocol_restart(service)
-        elif path == "/api/users/trial":
-            self.handle_post_trial_user(body, session)
         elif path == "/api/resellers":
             if not self._require_admin(session):
                 return

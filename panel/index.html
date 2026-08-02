@@ -246,6 +246,7 @@
 <div class="mo" id="mbk"><div class="mb2"><div class="mhd"><h3 class="mtl">Bulk Create</h3><button class="bi" onclick="closeM('mbk')" style="border:none;">✕</button></div>
 <form id="fb"><div class="ir"><div class="ig"><label>Prefix</label><input type="text" id="bp2" value="user" required></div><div class="ig"><label>Count</label><input type="number" id="bc" value="5" min="1" max="50" required></div></div>
 <div class="ir"><div class="ig"><label>Days</label><input type="number" id="bd" value="30" min="1" required></div><div class="ig"><label>Devices</label><input type="number" id="bcc" value="1" min="1" required></div></div>
+<div class="mft"><button type="button" class="btn bs2" onclick="closeM('mbk')">Cancel</button><button type="submit" class="btn bp">Create</button></div></form></div></div>
 
 <div class="mo" id="mtr"><div class="mb2"><div class="mhd"><h3 class="mtl">Trial Account</h3><button class="bi" onclick="closeM('mtr')" style="border:none;">✕</button></div>
 <form id="ftr"><div class="ig"><label>Username (optional)</label><input type="text" id="tn" placeholder="Auto-generated"></div>
@@ -254,7 +255,6 @@
 <div class="ir"><div class="ig"><label>Devices</label><input type="number" id="tc2" value="1" min="1" required></div><div class="ig"><label>BW (GB, 0=∞)</label><input type="number" step=".1" id="tb" value="0" min="0"></div></div>
 <div id="tq" class="hidden" style="padding:.55rem .85rem;background:var(--ad);border:1px solid var(--bg2);border-radius:var(--rm);margin-bottom:.85rem;font-size:.72rem;color:var(--al);"></div>
 <div class="mft"><button type="button" class="btn bs2" onclick="closeM('mtr')">Cancel</button><button type="submit" class="btn bp">Create Trial</button></div></form></div></div>
-<div class="mft"><button type="button" class="btn bs2" onclick="closeM('mbk')">Cancel</button><button type="submit" class="btn bp">Create</button></div></form></div></div>
 
 <div class="mo" id="mcr"><div class="mb2"><div class="mhd"><h3 class="mtl">New Reseller</h3><button class="bi" onclick="closeM('mcr')" style="border:none;">✕</button></div>
 <form id="fcr"><div class="ig"><label>Username</label><input type="text" id="rn" required pattern="[a-zA-Z0-9_]+"></div>
