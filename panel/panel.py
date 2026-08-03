@@ -1369,8 +1369,29 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             return self.send_json(404, {"error": "Reseller not found"})
 
         resellers[idx]["enabled"] = not resellers[idx]["enabled"]
+        now_enabled = resellers[idx]["enabled"]
         write_resellers(resellers)
-        self.send_json(200, {"success": True, "enabled": resellers[idx]["enabled"]})
+
+        # Lock/unlock all SSH users owned by this reseller
+        users = read_db()
+        owned = [u for u in users if u.get("owner") == username]
+        for u in owned:
+            un = u["username"]
+            if now_enabled:
+                run_cmd(f"usermod -U {un}", ignore_errors=True)
+            else:
+                run_cmd(f"usermod -L {un}", ignore_errors=True)
+                run_cmd(f"killall -u {un} -9", ignore_errors=True)
+
+        # Invalidate reseller's panel sessions when disabling
+        if not now_enabled:
+            tokens_to_remove = [t for t, s in sessions.items() if s.get("username") == username and s.get("role") == "reseller"]
+            for t in tokens_to_remove:
+                del sessions[t]
+            if tokens_to_remove:
+                save_sessions()
+
+        self.send_json(200, {"success": True, "enabled": now_enabled, "affected_users": len(owned)})
 
     def handle_add_credits(self, username, body):
         resellers = read_resellers()
