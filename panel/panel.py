@@ -682,7 +682,7 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             if r:
                 data["expire_date"] = r["expire_date"]
                 data["max_users"] = r["max_users"]
-                data["type"] = r.get("type", "quota")
+                data["reseller_type"] = r.get("type", "quota")
                 data["credits"] = r.get("credits", 0)
                 users = read_db()
                 owned = [u for u in users if u.get("owner") == session["username"]]
