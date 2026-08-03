@@ -2,6 +2,7 @@
 import os
 import sys
 import json
+import math
 import time
 import subprocess
 import secrets
@@ -148,7 +149,9 @@ def parse_reseller_line(line):
         "password": parts[1],
         "expire_date": parts[2],
         "max_users": int(parts[3]) if parts[3].isdigit() else 10,
-        "enabled": parts[4] == "1"
+        "enabled": parts[4] == "1",
+        "type": parts[5] if len(parts) > 5 else "quota",
+        "credits": int(parts[6]) if len(parts) > 6 and parts[6].isdigit() else 0
     }
 
 def read_resellers():
@@ -167,13 +170,19 @@ def read_resellers():
 
 def format_reseller_line(r):
     enabled = "1" if r.get("enabled", True) else "0"
-    return f"{r['username']}:{r['password']}:{r['expire_date']}:{r['max_users']}:{enabled}\n"
+    rtype = r.get("type", "quota")
+    credits = r.get("credits", 0)
+    return f"{r['username']}:{r['password']}:{r['expire_date']}:{r['max_users']}:{enabled}:{rtype}:{credits}\n"
 
 def write_resellers(resellers):
     os.makedirs(os.path.dirname(RESELLERS_DB), exist_ok=True)
     with open(RESELLERS_DB, "w") as f:
         for r in resellers:
             f.write(format_reseller_line(r))
+
+def calculate_credit_cost(days):
+    """Calculate credit cost: 1 credit per 30 days, rounded up."""
+    return math.ceil(days / 30)
 
 # --- ONLINE SESSIONS ---
 def get_online_sessions(target_user=None):
@@ -537,6 +546,11 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
                 return
             reseller_name = path.split("/")[3]
             self.handle_toggle_reseller(reseller_name)
+        elif path.startswith("/api/resellers/") and path.endswith("/add-credits"):
+            if not self._require_admin(session):
+                return
+            username = path.split("/")[3]
+            self.handle_add_credits(username, body)
         else:
             self.send_json(404, {"error": "Not Found"})
 
@@ -668,6 +682,8 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             if r:
                 data["expire_date"] = r["expire_date"]
                 data["max_users"] = r["max_users"]
+                data["type"] = r.get("type", "quota")
+                data["credits"] = r.get("credits", 0)
                 users = read_db()
                 owned = [u for u in users if u.get("owner") == session["username"]]
                 data["created_users"] = len(owned)
@@ -695,7 +711,9 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
                 "reseller_info": {
                     "max_users": max_users,
                     "created_users": len(owned_users),
-                    "expire_date": expire_date
+                    "expire_date": expire_date,
+                    "type": r.get("type", "quota") if r else "quota",
+                    "credits": r.get("credits", 0) if r else 0
                 }
             })
             return
@@ -884,10 +902,19 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
                 r = next((x for x in resellers if x["username"] == session["username"]), None)
                 if not r:
                     return self.send_json(403, {"error": "Reseller account not found"})
-                users = read_db()
-                owned = [u for u in users if u.get("owner") == session["username"]]
-                if len(owned) >= r["max_users"]:
-                    return self.send_json(403, {"error": f"User limit reached ({r['max_users']})"})
+                
+                if r.get("type") == "credits":
+                    # Credit-based: check credit balance
+                    days = int(body.get("days", 30))
+                    cost = calculate_credit_cost(days)
+                    if r.get("credits", 0) < cost:
+                        return self.send_json(403, {"error": f"Not enough credits. Need {cost}, have {r.get('credits', 0)}"})
+                else:
+                    # Quota-based: check user count
+                    users = read_db()
+                    owned = [u for u in users if u.get("owner") == session["username"]]
+                    if len(owned) >= r["max_users"]:
+                        return self.send_json(403, {"error": f"User limit reached ({r['max_users']})"})
 
             un = body.get("username", "")
             pwd = body.get("password", "") or generate_password()
@@ -897,6 +924,16 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             dbw = float(body.get("daily_bandwidth_gb", 0))
             
             new_u = self._create_user(un, pwd, days, conn, bw, dbw, owner=owner)
+            
+            # Deduct credits if credit-based reseller
+            if session.get("role") == "reseller":
+                resellers = read_resellers()
+                r = next((x for x in resellers if x["username"] == session["username"]), None)
+                if r and r.get("type") == "credits":
+                    cost = calculate_credit_cost(days)
+                    r["credits"] = max(0, r.get("credits", 0) - cost)
+                    write_resellers(resellers)
+            
             self.send_json(200, new_u)
         except Exception as e:
             self.send_json(400, {"error": str(e)})
@@ -912,11 +949,21 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
                 r = next((x for x in resellers if x["username"] == session["username"]), None)
                 if not r:
                     return self.send_json(403, {"error": "Reseller account not found"})
-                users = read_db()
-                owned = [u for u in users if u.get("owner") == session["username"]]
-                remaining_quota = r["max_users"] - len(owned)
-                if remaining_quota <= 0:
-                    return self.send_json(403, {"error": f"User limit reached ({r['max_users']})"})
+                
+                if r.get("type") == "credits":
+                    days_val = int(body.get("days", 30))
+                    cost_per = calculate_credit_cost(days_val)
+                    count_requested = int(body.get("count", 1))
+                    max_affordable = r.get("credits", 0) // cost_per if cost_per > 0 else 0
+                    remaining_quota = max_affordable
+                    if remaining_quota <= 0:
+                        return self.send_json(403, {"error": f"Not enough credits. Need {cost_per} per user, have {r.get('credits', 0)}"})
+                else:
+                    users = read_db()
+                    owned = [u for u in users if u.get("owner") == session["username"]]
+                    remaining_quota = r["max_users"] - len(owned)
+                    if remaining_quota <= 0:
+                        return self.send_json(403, {"error": f"User limit reached ({r['max_users']})"})
 
             prefix = body.get("prefix", "user")
             count = min(int(body.get("count", 1)), int(remaining_quota))
@@ -943,6 +990,16 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
                     pass # skip failures in bulk
                 idx += 1
                 
+            # Deduct credits if credit-based reseller
+            if session.get("role") == "reseller" and len(created) > 0:
+                resellers = read_resellers()
+                r = next((x for x in resellers if x["username"] == session["username"]), None)
+                if r and r.get("type") == "credits":
+                    days_val = int(body.get("days", 30))
+                    total_cost = len(created) * calculate_credit_cost(days_val)
+                    r["credits"] = max(0, r.get("credits", 0) - total_cost)
+                    write_resellers(resellers)
+            
             self.send_json(200, {"users": created})
         except Exception as e:
             self.send_json(400, {"error": str(e)})
@@ -989,6 +1046,16 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             expiry_time = (datetime.now() + timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
             new_u["expiry_time"] = expiry_time
             new_u["hours"] = hours
+            
+            # Deduct credits if credit-based reseller
+            if session.get("role") == "reseller":
+                resellers = read_resellers()
+                r = next((x for x in resellers if x["username"] == session["username"]), None)
+                if r and r.get("type") == "credits":
+                    days_val = hours // 24 if hours >= 24 else 1
+                    cost = calculate_credit_cost(days_val)
+                    r["credits"] = max(0, r.get("credits", 0) - cost)
+                    write_resellers(resellers)
             
             self.send_json(200, new_u)
         except Exception as e:
@@ -1075,6 +1142,18 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             
         elif action == "renew":
             days = int(body.get("days", 30)) if body else 30
+            
+            # Deduct credits for credit-based reseller renewals
+            if session and session.get("role") == "reseller":
+                resellers = read_resellers()
+                r = next((x for x in resellers if x["username"] == session["username"]), None)
+                if r and r.get("type") == "credits":
+                    cost = calculate_credit_cost(days)
+                    if r.get("credits", 0) < cost:
+                        return self.send_json(403, {"error": f"Not enough credits. Need {cost}, have {r.get('credits', 0)}"})
+                    r["credits"] = max(0, r.get("credits", 0) - cost)
+                    write_resellers(resellers)
+            
             with db_lock:
                 users = read_db()
                 u = next((x for x in users if x["username"] == username), None)
@@ -1208,7 +1287,9 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
                 "max_users": r["max_users"],
                 "created_users": len(owned),
                 "enabled": r["enabled"],
-                "is_expired": is_expired
+                "is_expired": is_expired,
+                "type": r.get("type", "quota"),
+                "credits": r.get("credits", 0)
             })
         self.send_json(200, {"resellers": result})
 
@@ -1231,13 +1312,28 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             if any(r["username"] == un for r in resellers):
                 return self.send_json(400, {"error": "Reseller already exists"})
 
-            new_r = {
-                "username": un,
-                "password": pwd,
-                "expire_date": calculate_expire_date(days),
-                "max_users": max_users,
-                "enabled": True
-            }
+            rtype = body.get("type", "quota")
+            if rtype == "credits":
+                credits_amount = int(body.get("credits", 0))
+                new_r = {
+                    "username": un,
+                    "password": pwd,
+                    "expire_date": "Never",
+                    "max_users": 0,
+                    "enabled": True,
+                    "type": "credits",
+                    "credits": credits_amount
+                }
+            else:
+                new_r = {
+                    "username": un,
+                    "password": pwd,
+                    "expire_date": calculate_expire_date(days),
+                    "max_users": max_users,
+                    "enabled": True,
+                    "type": "quota",
+                    "credits": 0
+                }
             resellers.append(new_r)
             write_resellers(resellers)
             self.send_json(200, new_r)
@@ -1257,6 +1353,10 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
             r["expire_date"] = calculate_expire_date(int(body["days"]))
         if "max_users" in body:
             r["max_users"] = int(body["max_users"])
+        if "add_credits" in body:
+            r["credits"] = r.get("credits", 0) + int(body["add_credits"])
+        if "set_credits" in body:
+            r["credits"] = int(body["set_credits"])
 
         resellers[idx] = r
         write_resellers(resellers)
@@ -1271,6 +1371,20 @@ class PanelAPIHandler(BaseHTTPRequestHandler):
         resellers[idx]["enabled"] = not resellers[idx]["enabled"]
         write_resellers(resellers)
         self.send_json(200, {"success": True, "enabled": resellers[idx]["enabled"]})
+
+    def handle_add_credits(self, username, body):
+        resellers = read_resellers()
+        idx = next((i for i, r in enumerate(resellers) if r["username"] == username), -1)
+        if idx == -1:
+            return self.send_json(404, {"error": "Reseller not found"})
+        
+        amount = int(body.get("credits", 0))
+        if amount <= 0:
+            return self.send_json(400, {"error": "Credits must be positive"})
+        
+        resellers[idx]["credits"] = resellers[idx].get("credits", 0) + amount
+        write_resellers(resellers)
+        self.send_json(200, {"success": True, "credits": resellers[idx]["credits"]})
 
     def handle_delete_reseller(self, username, delete_users=False):
         resellers = read_resellers()
